@@ -74,6 +74,7 @@ object Monitor {
         dir = CellDirectory(app)
         logger = DriveLogger(app)
         net = NetStateWatcher(app)
+        SiteFinder.init(app)
     }
 
     // ---------- listeners / lifecycle ----------
@@ -204,6 +205,7 @@ object Monitor {
         if (history.size > HISTORY_MAX) history.removeAt(0)
         addTrackPoint(s)
         if (hasPhonePerms()) Alerts.check(app, s)
+        SiteFinder.record(s, freshLoc()) { notifyListeners() }
         s.serving?.let { c -> dir.lookup(c) { notifyListeners() } }
         dir.updateMyAddress(freshLoc()) { notifyListeners() }
         if (logger.active) {

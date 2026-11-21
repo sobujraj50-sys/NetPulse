@@ -142,6 +142,25 @@ object Exporter {
             }
             sb.append("</Folder>\n")
         }
+        // towers estimated by NetPulse from your own measurements
+        val estSites = samples.mapNotNull { s ->
+            val id = if (s.tech == "LTE" || s.tech == "NR") s.node else s.cellId
+            if (s.tech == null || id.isBlank() || s.mcc.isBlank() || s.mnc.isBlank()) null
+            else "${s.tech}_${s.mcc}-${s.mnc}_$id".let { k -> SiteFinder.estimateByKey(k)?.let { Triple(k, s, it) } }
+        }.distinctBy { it.first }
+        if (estSites.isNotEmpty()) {
+            sb.append("<Style id=\"est\"><IconStyle><color>ffaa248e</color><scale>1.1</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/triangle.png</href></Icon></IconStyle></Style>\n")
+            sb.append("<Folder><name>Estimated towers</name>\n")
+            estSites.forEach { (_, s, e) ->
+                val label = if (s.tech == "LTE") "eNB ${s.node}" else if (s.tech == "NR") "gNB ${s.node}" else "CI ${s.cellId}"
+                sb.append("<Placemark><name>").append(xml("≈ $label")).append("</name><styleUrl>#est</styleUrl><description>")
+                    .append(xml(String.format(Locale.US, "%s %s\nEstimated from %d points, ±%.0f m\n%s",
+                        s.tech, s.operator, e.count, e.radiusM, e.address ?: "")))
+                    .append("</description><Point><coordinates>").append(e.lon).append(',').append(e.lat)
+                    .append(",0</coordinates></Point></Placemark>\n")
+            }
+            sb.append("</Folder>\n")
+        }
         sb.append("</Document></kml>\n")
         out.writeText(sb.toString())
         return out

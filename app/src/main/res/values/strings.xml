@@ -182,4 +182,16 @@
     <string name="alert_sound">Sound</string>
     <string name="alert_vibrate">Vibration</string>
     <string name="alert_test">Test alert</string>
+    <string name="tower_est">Tower (estimated)</string>
+    <string name="est_collecting_fmt">Estimating location: %1$d / %2$d GPS points — move around the area</string>
+    <string name="est_points_fmt">%1$d pts</string>
+    <string name="est_q_high">High accuracy</string>
+    <string name="est_q_med">Medium accuracy</string>
+    <string name="est_q_low">Low accuracy</string>
+    <string name="sec_towers">Tower finder</string>
+    <string name="est_clear">Clear estimated towers</string>
+    <string name="est_count_fmt">%1$d towers estimated so far</string>
+    <string name="est_clear_confirm">Delete all collected points and estimated tower locations?</string>
+    <string name="map_towers_on">Towers: ON</string>
+    <string name="map_towers_off">Towers: OFF</string>
 </resources>

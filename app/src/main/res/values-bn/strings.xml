@@ -175,4 +175,16 @@
     <string name="alert_sound">শব্দ</string>
     <string name="alert_vibrate">ভাইব্রেশন</string>
     <string name="alert_test">সতর্কতা পরীক্ষা করুন</string>
+    <string name="tower_est">টাওয়ার (আনুমানিক)</string>
+    <string name="est_collecting_fmt">অবস্থান হিসাব হচ্ছে: %1$d / %2$d GPS পয়েন্ট — আশেপাশে ঘুরুন</string>
+    <string name="est_points_fmt">%1$d পয়েন্ট</string>
+    <string name="est_q_high">উচ্চ নির্ভুলতা</string>
+    <string name="est_q_med">মাঝারি নির্ভুলতা</string>
+    <string name="est_q_low">কম নির্ভুলতা</string>
+    <string name="sec_towers">টাওয়ার খোঁজা</string>
+    <string name="est_clear">আনুমানিক টাওয়ারের তথ্য মুছুন</string>
+    <string name="est_count_fmt">এখন পর্যন্ত %1$dটি টাওয়ারের অবস্থান হিসাব হয়েছে</string>
+    <string name="est_clear_confirm">সংগ্রহ করা সব পয়েন্ট আর আনুমানিক টাওয়ারের অবস্থান মুছে ফেলবেন?</string>
+    <string name="map_towers_on">টাওয়ার: চালু</string>
+    <string name="map_towers_off">টাওয়ার: বন্ধ</string>
 </resources>

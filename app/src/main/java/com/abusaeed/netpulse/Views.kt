@@ -120,6 +120,36 @@ class TrackOverlay(private val points: List<TrackPoint>) : Overlay() {
     var me: GeoPoint? = null
     var tower: GeoPoint? = null
     var towerLabel: String? = null
+    /** Estimated serving site: position + uncertainty radius (m). */
+    var est: GeoPoint? = null
+    var estRadiusM = 0.0
+    var estLabel: String? = null
+    /** Other estimated sites (shown small). */
+    var otherSites: List<Pair<GeoPoint, String>> = emptyList()
+    private val estPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF8E24AA.toInt() }
+    private val estSmall = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xCC8E24AA.toInt() }
+    private val circleFill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x268E24AA }
+    private val circleLine = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = 0xAA8E24AA.toInt(); style = Paint.Style.STROKE; strokeWidth = 3f
+        pathEffect = DashPathEffect(floatArrayOf(14f, 10f), 0f)
+    }
+    private val smallLabel = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK; textSize = 24f }
+    private val pt3 = Point()
+
+    private fun triangle(c: Canvas, x: Float, y: Float, size: Float, fill: Paint) {
+        val path = Path().apply {
+            moveTo(x, y - size * 1.5f); lineTo(x - size, y + size * 0.45f); lineTo(x + size, y + size * 0.45f); close()
+        }
+        c.drawPath(path, fill)
+        c.drawPath(path, ring)
+    }
+
+    private fun label(c: Canvas, text: String, x: Float, y: Float, p: Paint) {
+        val w = p.measureText(text)
+        val h = p.textSize
+        c.drawRoundRect(x - w / 2 - 8f, y, x + w / 2 + 8f, y + h + 12f, 8f, 8f, labelBg)
+        c.drawText(text, x - w / 2, y + h + 2f, p)
+    }
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val mePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF2979FF.toInt() }
     private val ring = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -144,6 +174,27 @@ class TrackOverlay(private val points: List<TrackPoint>) : Overlay() {
             pj.toPixels(GeoPoint(p.lat, p.lon), pt)
             paint.color = p.color
             c.drawCircle(pt.x.toFloat(), pt.y.toFloat(), 9f, paint)
+        }
+        // other estimated sites
+        for ((g, name) in otherSites) {
+            pj.toPixels(g, pt3)
+            triangle(c, pt3.x.toFloat(), pt3.y.toFloat(), 12f, estSmall)
+            label(c, name, pt3.x.toFloat(), pt3.y.toFloat() + 10f, smallLabel)
+        }
+        // estimated serving site with its uncertainty circle
+        est?.let { e ->
+            pj.toPixels(e, pt3)
+            val edge = GeoPoint(e.latitude + estRadiusM / 110_540.0, e.longitude)
+            pj.toPixels(edge, pt2)
+            val rPx = kotlin.math.abs(pt3.y - pt2.y).toFloat()
+            c.drawCircle(pt3.x.toFloat(), pt3.y.toFloat(), rPx, circleFill)
+            c.drawCircle(pt3.x.toFloat(), pt3.y.toFloat(), rPx, circleLine)
+            if (tower == null) me?.let { m ->
+                pj.toPixels(m, pt)
+                c.drawLine(pt.x.toFloat(), pt.y.toFloat(), pt3.x.toFloat(), pt3.y.toFloat(), linePaint)
+            }
+            triangle(c, pt3.x.toFloat(), pt3.y.toFloat(), 20f, estPaint)
+            estLabel?.let { label(c, it, pt3.x.toFloat(), pt3.y.toFloat() + 14f, labelPaint) }
         }
         tower?.let { t ->
             pj.toPixels(t, pt2)

@@ -33,6 +33,13 @@ Works with every Bangladesh operator — Grameenphone, Robi, Airtel, Banglalink 
   - Share the CSV, or delete the log
 - **Signal alerts** (Settings → Alerts): weak signal (threshold from -100 to -120 dBm), no service, and network change (for example 4G → 3G), with sound, vibration and a notification. Alerts work while the app is open or a drive test is running.
 
+## Version 2.2 — Tower finder
+When OpenCelliD doesn't know a tower, NetPulse works out where it is from your own measurements, the way CellMapper does:
+- Every good GPS fix (accuracy 30 m or better, after moving at least 15 m) is saved with the serving cell's signal level, grouped by site (eNB/gNB for 4G/5G).
+- After 6 points the app fits a path-loss model (RSRP = P0 − 10·n·log10(d)) using a grid search. If the phone reports Timing Advance, it also uses that as a distance check.
+- The CELL tab shows "Tower (estimated)" with the position, distance, a ± uncertainty, an accuracy level (Low / Medium / High) and the street address. The MAP tab shows a purple triangle with an uncertainty circle, plus every other tower estimated so far ("Towers" button). Estimated towers are also added to KML exports.
+- In tests with simulated data, the error was about 30–40 m when driving around the tower, about 15 m with TA, and about 300 m from one straight road. A straight road is always marked "Low", because the app can't tell which side of the road the tower is on.
+
 ## Build
 Push to the `main` branch. GitHub Actions builds `NetPulse.apk` and publishes it as a Release.
 You can also build locally: `gradle assembleDebug` (Gradle 8.14, JDK 17, Android SDK 36).

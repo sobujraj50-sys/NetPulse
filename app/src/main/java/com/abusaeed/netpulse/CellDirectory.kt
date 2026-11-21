@@ -135,7 +135,8 @@ class CellDirectory(private val ctx: Context) {
             val body = (if (code < 400) conn.inputStream else conn.errorStream)
                 ?.bufferedReader()?.use { it.readText() } ?: ""
             val lower = body.lowercase(Locale.US)
-            if ("invalid" in lower && "key" in lower) throw Exception("OpenCelliD API key is invalid")
+            if ("invalid" in lower && ("key" in lower || "token" in lower)) throw Exception("OpenCelliD API key is invalid")
+            if (code == 401 || code == 403) throw Exception("OpenCelliD API key was refused ($code)")
             if ("limit" in lower && ("exceed" in lower || "daily" in lower)) throw Exception("OpenCelliD daily limit reached")
             // JSON response
             try {
@@ -145,6 +146,13 @@ class CellDirectory(private val ctx: Context) {
                     if (lat == 0.0 && lon == 0.0) return null
                     return Triple(lat, lon, if (j.has("range")) j.optInt("range") else null)
                 }
+                val err = j.optString("error", j.optString("message", ""))
+                val low = err.lowercase(Locale.US)
+                if ("token" in low || "key" in low || "unauthor" in low || "denied" in low)
+                    throw Exception("OpenCelliD API key problem: $err")
+                if ("limit" in low) throw Exception("OpenCelliD daily limit reached")
+                if (err.isNotBlank() && "not found" !in low && "no cell" !in low && "no match" !in low)
+                    throw Exception("OpenCelliD: $err")
                 if (j.has("error") || j.has("code")) return null
             } catch (e: org.json.JSONException) { /* maybe XML */ }
             // XML response fallback
@@ -160,6 +168,9 @@ class CellDirectory(private val ctx: Context) {
     }
 
     private val plusCode = Regex("^[23456789CFGHJMPQRVWX]{2,8}\\+[23456789CFGHJMPQRVWX]{0,3},?\\s*")
+
+    /** Blocking reverse geocode (call from a background thread). */
+    fun addressFor(lat: Double, lon: Double): String? = geocode(lat, lon)
 
     @Suppress("DEPRECATION")
     private fun geocode(lat: Double, lon: Double): String? = try {

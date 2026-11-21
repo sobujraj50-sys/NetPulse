@@ -79,6 +79,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var trackOverlay: TrackOverlay
     private lateinit var mapInfo: TextView
     private var follow = true
+    private var showSites = true
     private var mapStyleShown = -1
 
     // DRIVE
@@ -617,10 +618,10 @@ class MainActivity : AppCompatActivity() {
             val name = dir.name(c)
             nameTv.text = kv(str(R.string.cell_name), name ?: str(R.string.not_set_tap), if (name != null) p.accent else p.label)
             val t = dir.tower(c)
-            val tAddr = t?.address
-            val addr = when {
-                tAddr != null -> tAddr
-                t != null -> str(R.string.no_street_address)
+            val est = if (t == null) SiteFinder.estimate(c) else null
+            val tAddr = t?.address ?: est?.address?.let { "≈ $it" }
+            val ocidState = when {
+                t != null -> null
                 dir.key(c) == null -> str(R.string.no_cell_id)
                 dir.apiKey.isBlank() -> str(R.string.set_key_hint)
                 dir.isLooking(c) -> str(R.string.looking_up)
@@ -628,9 +629,28 @@ class MainActivity : AppCompatActivity() {
                 dir.lastError != null -> getString(R.string.error_fmt, dir.lastError)
                 else -> str(R.string.looking_up)
             }
+            val addr = when {
+                tAddr != null -> tAddr
+                t != null -> str(R.string.no_street_address)
+                est != null -> str(R.string.no_street_address)
+                else -> ocidState ?: "--"
+            }
             towerAddrTv.text = kv(str(R.string.tower_address), addr, if (tAddr != null) p.text else p.label)
             val loc = Monitor.freshLoc()
-            towerTv.text = if (t == null) kv(str(R.string.tower), "--") else {
+            towerTv.text = if (t == null && est != null) {
+                val sb = StringBuilder("≈ ").append(String.format(Locale.US, "%.5f, %.5f", est.lat, est.lon))
+                if (loc != null) {
+                    val d = FloatArray(1)
+                    Location.distanceBetween(loc.latitude, loc.longitude, est.lat, est.lon, d)
+                    sb.append("  •  ").append(getString(R.string.away_fmt, Prefs.distance(d[0].toDouble())))
+                }
+                sb.append("  •  ±").append(Prefs.height(est.radiusM))
+                sb.append("  •  ").append(str(SiteFinder.qualityRes(est.quality)))
+                sb.append(" (").append(getString(R.string.est_points_fmt, SiteFinder.points(c))).append(")  ›")
+                kv(str(R.string.tower_est), sb.toString(), when (est.quality) { 2 -> Sig.GREEN; 1 -> Sig.YELLOW; else -> Sig.ORANGE })
+            } else if (t == null) {
+                kv(str(R.string.tower_est), getString(R.string.est_collecting_fmt, SiteFinder.points(c), 6), p.label)
+            } else {
                 val sb = StringBuilder(String.format(Locale.US, "%.5f, %.5f", t.lat, t.lon))
                 if (loc != null) {
                     val d = FloatArray(1)
@@ -686,11 +706,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun showTowerOnMap() {
         val c = Monitor.snap?.serving ?: return
-        val t = Monitor.dir.tower(c) ?: return
+        val g = Monitor.dir.tower(c)?.let { GeoPoint(it.lat, it.lon) }
+            ?: SiteFinder.estimate(c)?.let { GeoPoint(it.lat, it.lon) }
+            ?: return
         follow = false
         selectTab(2)
         map?.controller?.setZoom(16.0)
-        map?.controller?.animateTo(GeoPoint(t.lat, t.lon))
+        map?.controller?.animateTo(g)
     }
 
     // ---------- NEI ----------
@@ -754,6 +776,13 @@ class MainActivity : AppCompatActivity() {
             followBtn.text = str(if (follow) R.string.follow_on else R.string.follow_off)
         }
         btns.addView(followBtn)
+        lateinit var sitesBtn: TextView
+        sitesBtn = button(str(R.string.map_towers_on), 0xDD6A1B9A.toInt()) {
+            showSites = !showSites
+            sitesBtn.text = str(if (showSites) R.string.map_towers_on else R.string.map_towers_off)
+            Monitor.snap?.let { renderMap(it) }
+        }
+        btns.addView(sitesBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginStart = dp(8) })
         val clearBtn = button(str(R.string.clear), 0xDD424242.toInt()) { Monitor.track.clear(); m.invalidate() }
         btns.addView(clearBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginStart = dp(8) })
         val lp = FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.END)
@@ -789,6 +818,14 @@ class MainActivity : AppCompatActivity() {
         val tw = c?.let { Monitor.dir.tower(it) }
         trackOverlay.tower = tw?.let { GeoPoint(it.lat, it.lon) }
         trackOverlay.towerLabel = c?.let { Monitor.dir.name(it) ?: Monitor.cellIdText(it) }
+        val est = if (tw == null) c?.let { SiteFinder.estimate(it) } else null
+        trackOverlay.est = est?.let { GeoPoint(it.lat, it.lon) }
+        trackOverlay.estRadiusM = est?.radiusM ?: 0.0
+        trackOverlay.estLabel = c?.let { "≈ " + (Monitor.dir.name(it) ?: SiteFinder.siteLabel(it)) }
+        val servingKey = c?.let { SiteFinder.siteKey(it) }
+        trackOverlay.otherSites = if (!showSites) emptyList() else SiteFinder.all()
+            .filterKeys { it != servingKey }
+            .map { (k, e) -> GeoPoint(e.lat, e.lon) to k.substringAfterLast('_') }
         if (follow && loc != null) m.controller.animateTo(GeoPoint(loc.latitude, loc.longitude))
         mapInfo.text = buildString {
             append(Monitor.opName(snap)).append("  ").append(Monitor.net.label(c?.tech))
@@ -796,6 +833,12 @@ class MainActivity : AppCompatActivity() {
                 .append("  PCI ").append(c?.pci.s())
             c?.let { Monitor.dir.name(it) }?.let { append("\n").append(it) }
             append("\n").append(c?.level.s()).append(" dBm   ").append(str(R.string.points)).append(" ").append(Monitor.track.size)
+            if (est != null && loc != null) {
+                val d = FloatArray(1)
+                Location.distanceBetween(loc.latitude, loc.longitude, est.lat, est.lon, d)
+                append("\n≈ ").append(str(R.string.tower)).append(" ").append(Prefs.distance(d[0].toDouble()))
+                    .append(" ±").append(Prefs.height(est.radiusM))
+            }
             if (tw != null && loc != null) {
                 val d = FloatArray(1)
                 Location.distanceBetween(loc.latitude, loc.longitude, tw.lat, tw.lon, d)

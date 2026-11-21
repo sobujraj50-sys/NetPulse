@@ -173,6 +173,15 @@ class SettingsActivity : AppCompatActivity() {
                 .show()
         }
 
+        section(R.string.sec_towers)
+        item(R.string.est_clear, getString(R.string.est_count_fmt, SiteFinder.all().size)) {
+            AlertDialog.Builder(this)
+                .setMessage(R.string.est_clear_confirm)
+                .setPositiveButton(R.string.remove) { _, _ -> SiteFinder.clearAll(); build() }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        }
+
         section(R.string.sec_alerts)
         fun onOff(b: Boolean) = getString(if (b) R.string.on else R.string.off)
         item(R.string.alerts_on, onOff(Prefs.alertsOn)) {
