@@ -1,0 +1,9 @@
+<resources>
+    <color name="bg">#FF1F1F1F</color>
+    <color name="ic_bg">#FF101010</color>
+    <style name="AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#FF00A152</item>
+        <item name="colorSecondary">#FF00796B</item>
+        <item name="android:windowBackground">#FF101010</item>
+    </style>
+</resources>
