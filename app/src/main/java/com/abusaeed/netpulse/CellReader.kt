@@ -154,7 +154,8 @@ object CellParser {
         val earfcn = id.earfcn.ok()
         val calc = earfcn?.let { Bands.lte(it) }
         val reportedBand = if (Build.VERSION.SDK_INT >= 30) id.bands.firstOrNull() else null
-        val band = reportedBand?.let { Bands.lteLabel(it) } ?: calc?.band
+        // EARFCN is exact; some modems report a wrong band list, so trust the EARFCN first
+        val band = calc?.band ?: reportedBand?.let { Bands.lteLabel(it) }
         val bw = if (Build.VERSION.SDK_INT >= 28) id.bandwidth.ok()?.let { it / 1000.0 } else null
         val mcc = if (Build.VERSION.SDK_INT >= 28) id.mccString else id.mcc.ok()?.toString()
         val mnc = if (Build.VERSION.SDK_INT >= 28) id.mncString else id.mnc.ok()?.toString()?.padStart(2, '0')
@@ -229,7 +230,7 @@ object NrParser {
         val reported = if (Build.VERSION.SDK_INT >= 30) id.bands.firstOrNull()?.let { "n$it" } else null
         return CellData(
             "NR", n.isRegistered, id.mccString, id.mncString, id.tac.ok(), nci,
-            nci?.shr(12), nci?.and(0xFFF), id.pci.ok(), arfcn, reported ?: calc?.band, calc?.dl, calc?.ul, null,
+            nci?.shr(12), nci?.and(0xFFF), id.pci.ok(), arfcn, calc?.band ?: reported, calc?.dl, calc?.ul, null,
             s.ssRsrp.ok().inRange(-160, -30), s.ssRsrq.ok().inRange(-45, 20),
             s.ssSinr.ok()?.toDouble(), null, null,
             "PCI", "TAC", "gNB"
