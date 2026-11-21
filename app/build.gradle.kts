@@ -15,11 +15,19 @@ android {
         applicationId = "com.abusaeed.netpulse"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "2.0"
+        versionCode = 4
+        versionName = "2.1"
     }
 
     signingConfigs {
+        // Fixed debug key kept in the repo, so every GitHub build can update the
+        // previously installed app (a new random key each build would block updates).
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         if (hasSigning) {
             create("release") {
                 storeFile = file(ksFile!!)

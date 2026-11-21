@@ -67,8 +67,9 @@ class CellDirectory(private val ctx: Context) {
     fun nameCount(): Int = names.all.size
 
     // ---------- towers ----------
-    fun tower(c: CellData): Tower? {
-        val k = key(c) ?: return null
+    fun tower(c: CellData): Tower? = key(c)?.let { towerByKey(it) }
+
+    fun towerByKey(k: String): Tower? {
         val v = towers.getString(k, null) ?: return null
         if (v.startsWith("NF")) return null
         val p = v.split('|')
@@ -158,11 +159,14 @@ class CellDirectory(private val ctx: Context) {
         }
     }
 
+    private val plusCode = Regex("^[23456789CFGHJMPQRVWX]{2,8}\\+[23456789CFGHJMPQRVWX]{0,3},?\\s*")
+
     @Suppress("DEPRECATION")
     private fun geocode(lat: Double, lon: Double): String? = try {
         if (!Geocoder.isPresent()) null
         else Geocoder(ctx, Locale.ENGLISH).getFromLocation(lat, lon, 1)?.firstOrNull()?.let { a ->
-            if (a.maxAddressLineIndex >= 0) (0..a.maxAddressLineIndex).joinToString(", ") { a.getAddressLine(it) }
+            if (a.maxAddressLineIndex >= 0)
+                (0..a.maxAddressLineIndex).joinToString(", ") { a.getAddressLine(it) }.replace(plusCode, "").trim()
             else listOfNotNull(a.subLocality, a.locality, a.subAdminArea, a.adminArea).joinToString(", ")
         }
     } catch (e: Exception) {

@@ -49,7 +49,7 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private lateinit var p: Palette
-    private val pages = arrayOfNulls<View>(5)
+    private val pages = arrayOfNulls<View>(6)
     private val tabButtons = ArrayList<TextView>()
     private var currentTab = 0
 
@@ -127,6 +127,11 @@ class MainActivity : AppCompatActivity() {
         Monitor.acquire()
         Monitor.addListener(listener)
         renderCurrent()
+    }
+
+    override fun onDestroy() {
+        speedTest?.cancel()
+        super.onDestroy()
     }
 
     override fun onStop() {
@@ -226,7 +231,9 @@ class MainActivity : AppCompatActivity() {
                 else -> Gravity.CENTER_HORIZONTAL
             }
             val t = tv(kv(k.uppercase(Locale.US), "--"), 15f, gravity = g)
-            t.maxLines = 1
+            t.setSingleLine(true)
+            t.ellipsize = android.text.TextUtils.TruncateAt.END
+            t.setAutoSizeTextTypeUniformWithConfiguration(10, 15, 1, android.util.TypedValue.COMPLEX_UNIT_SP)
             fields[k] = t
             row.addView(t, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         }
@@ -311,16 +318,19 @@ class MainActivity : AppCompatActivity() {
         pages[0] = buildCellPage()
         pages[1] = buildNeiPage()
         pages[2] = buildMapPage()
-        pages[3] = buildInfoPage()
-        pages[4] = buildDrivePage()
+        pages[3] = buildSpeedPage()
+        pages[4] = buildInfoPage()
+        pages[5] = buildDrivePage()
         pages.forEach { frame.addView(it, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)) }
         root.addView(frame, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
         // bottom tabs
         val tabs = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf(R.string.tab_cell, R.string.tab_nei, R.string.tab_map, R.string.tab_info, R.string.tab_drive).forEachIndexed { i, res ->
-            val t = tv(str(res), 15f, Color.WHITE, false, Gravity.CENTER).apply {
+        listOf(R.string.tab_cell, R.string.tab_nei, R.string.tab_map, R.string.tab_speed, R.string.tab_info, R.string.tab_drive).forEachIndexed { i, res ->
+            val t = tv(str(res), 13f, Color.WHITE, false, Gravity.CENTER).apply {
                 setPadding(0, dp(14), 0, dp(14))
+                setSingleLine(true)
+                setAutoSizeTextTypeUniformWithConfiguration(9, 13, 1, android.util.TypedValue.COMPLEX_UNIT_SP)
                 maxLines = 1
                 setOnClickListener { selectTab(i) }
             }
@@ -338,7 +348,8 @@ class MainActivity : AppCompatActivity() {
             t.setBackgroundColor(if (idx == i) 0xFF3D3D3D.toInt() else p.header)
             t.setTextColor(if (idx == i) 0xFF00E676.toInt() else 0xFFAAAAAA.toInt())
         }
-        if (i == 4) renderLogList()
+        if (i == 5) renderLogList()
+        if (i == 3) renderSpeedHistory()
         renderCurrent()
     }
 
@@ -362,8 +373,9 @@ class MainActivity : AppCompatActivity() {
             0 -> renderCell(snap)
             1 -> renderNei(snap)
             2 -> renderMap(snap)
-            3 -> renderInfo(snap)
-            4 -> renderDrive()
+            3 -> renderSpeedContext(snap)
+            4 -> renderInfo(snap)
+            5 -> renderDrive()
         }
     }
 
@@ -412,11 +424,12 @@ class MainActivity : AppCompatActivity() {
 
         val s1 = vbox(p.panel).apply { setPadding(0, dp(4), 0, dp(4)) }
         s1.addView(kvRow("mcc", "mnc", "lac", "type"))
-        s1.addView(kvRow("node", "cid", "pci", "ta"))
+        s1.addView(kvRow("node", "cid", "pci"))
         s1.addView(kvRow("arfcn", "band", "bw"))
         s1.addView(kvRow("fdl", "ful"))
         s1.addView(kvRow("level", "qual", "snr"))
-        s1.addView(kvRow("rssi", "eci"))
+        s1.addView(kvRow("rssi", "ta"))
+        s1.addView(kvRow("eci"))
         s1.addView(kvRow("net"))
         s1.addView(kvRow("ca"))
 
@@ -793,6 +806,198 @@ class MainActivity : AppCompatActivity() {
         m.invalidate()
     }
 
+    // ---------- SPEED ----------
+    private var speedTest: SpeedTest? = null
+    private lateinit var speedBig: TextView
+    private lateinit var speedPhase: TextView
+    private lateinit var speedBar: android.widget.ProgressBar
+    private lateinit var speedBtn: TextView
+    private lateinit var speedCtx: TextView
+    private lateinit var speedHist: LinearLayout
+    private val speedVals = HashMap<String, TextView>()
+
+    private fun buildSpeedPage(): View {
+        val col = vbox().apply { setPadding(dp(14), dp(14), dp(14), dp(14)) }
+        val card = vbox(p.panel).apply {
+            setPadding(dp(16), dp(16), dp(16), dp(16))
+            gravity = Gravity.CENTER_HORIZONTAL
+        }
+        speedPhase = tv(str(R.string.speed_ready), 15f, p.label, gravity = Gravity.CENTER)
+        speedBig = tv("--", 52f, p.text, true, Gravity.CENTER)
+        val unit = tv("Mbps", 15f, p.label, gravity = Gravity.CENTER)
+        speedBar = android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 1000; progress = 0
+        }
+        card.addView(speedPhase, mw())
+        card.addView(speedBig, mw())
+        card.addView(unit, mw())
+        card.addView(speedBar, mw().apply { topMargin = dp(10) })
+        col.addView(card, mw())
+
+        // four result boxes
+        val boxes = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        listOf(
+            "ping" to R.string.speed_ping, "jitter" to R.string.speed_jitter,
+            "down" to R.string.speed_down, "up" to R.string.speed_up
+        ).forEachIndexed { i, (k, label) ->
+            val b = vbox(p.panel2).apply {
+                setPadding(dp(4), dp(10), dp(4), dp(10))
+                gravity = Gravity.CENTER_HORIZONTAL
+            }
+            b.addView(tv(str(label), 12f, p.label, gravity = Gravity.CENTER).apply { maxLines = 1 }, mw())
+            val v = tv("--", 18f, p.text, true, Gravity.CENTER).apply {
+                setSingleLine(true)
+                setAutoSizeTextTypeUniformWithConfiguration(11, 18, 1, android.util.TypedValue.COMPLEX_UNIT_SP)
+            }
+            speedVals[k] = v
+            b.addView(v, mw())
+            b.addView(tv(if (i < 2) "ms" else "Mbps", 11f, p.label, gravity = Gravity.CENTER), mw())
+            boxes.addView(b, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                if (i > 0) marginStart = dp(6)
+            })
+        }
+        col.addView(boxes, mw().apply { topMargin = dp(10) })
+
+        speedBtn = button(str(R.string.speed_start), 0xFF1565C0.toInt()) { toggleSpeed() }
+        col.addView(speedBtn, mw().apply { topMargin = dp(12) })
+        speedCtx = tv("", 13f, p.label).apply { setPadding(0, dp(8), 0, 0) }
+        col.addView(speedCtx, mw())
+
+        val histHead = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(18), 0, dp(6))
+        }
+        histHead.addView(tv(str(R.string.speed_history), 16f, p.text, true), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        histHead.addView(tv(str(R.string.speed_share), 14f, p.accent, true).apply {
+            setPadding(dp(10), dp(4), dp(4), dp(4))
+            setOnClickListener {
+                SpeedTest.historyFile(this@MainActivity)?.let { shareFile(it, "text/csv") }
+                    ?: Toast.makeText(this@MainActivity, R.string.speed_no_history, Toast.LENGTH_SHORT).show()
+            }
+        })
+        col.addView(histHead, mw())
+        speedHist = vbox()
+        col.addView(speedHist, mw())
+        return ScrollView(this).apply { addView(col) }
+    }
+
+    private fun renderSpeedContext(snap: Snapshot) {
+        if (speedTest != null) return
+        val c = snap.serving
+        speedCtx.text = getString(
+            R.string.speed_context, "Cloudflare", Monitor.opName(snap),
+            Monitor.net.label(c?.tech), c?.level?.let { "$it dBm" } ?: "--", dataInfo().first
+        )
+    }
+
+    private fun renderSpeedHistory() {
+        if (!::speedHist.isInitialized) return
+        speedHist.removeAllViews()
+        val h = SpeedTest.history(this)
+        if (h.isEmpty()) {
+            speedHist.addView(tv(str(R.string.speed_no_history), 14f, p.label), mw())
+            return
+        }
+        h.take(40).forEachIndexed { i, r ->
+            val line1 = "↓ ${r["download_mbps"]}   ↑ ${r["upload_mbps"]} Mbps   •   ${r["ping_ms"]} ms"
+            val line2 = "${r["time"]}  •  ${r["operator"]}  ${r["network"]}  ${r["level_dbm"]?.let { if (it.isBlank()) "" else "$it dBm" }}"
+            val t = tv("$line1\n$line2", 13f, p.text).apply {
+                setBackgroundColor(if (i % 2 == 0) p.panel else p.panel2)
+                setPadding(dp(12), dp(10), dp(12), dp(10))
+                setLineSpacing(0f, 1.2f)
+            }
+            speedHist.addView(t, mw())
+        }
+    }
+
+    private fun toggleSpeed() {
+        speedTest?.let {
+            it.cancel()
+            speedBtn.text = str(R.string.speed_stopping)
+            return
+        }
+        val cm = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+        val caps = try { cm.getNetworkCapabilities(cm.activeNetwork) } catch (e: Exception) { null }
+        if (caps == null) {
+            Toast.makeText(this, R.string.speed_no_internet, Toast.LENGTH_SHORT).show(); return
+        }
+        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) && !Prefs.speedDataWarned) {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.speed_data_title)
+                .setMessage(R.string.speed_data_msg)
+                .setPositiveButton(R.string.continue_) { _, _ -> Prefs.speedDataWarned = true; startSpeed() }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+            return
+        }
+        startSpeed()
+    }
+
+    private fun startSpeed() {
+        listOf("ping", "jitter", "down", "up").forEach { speedVals[it]?.text = "--" }
+        speedBig.text = "0"
+        speedBar.progress = 0
+        speedBtn.text = str(R.string.speed_stop)
+        (speedBtn.background as? GradientDrawable)?.setColor(0xFFC62828.toInt())
+        val snap = Monitor.snap
+        val c = snap?.serving
+        val loc = Monitor.freshLoc()
+        val st = SpeedTest(object : SpeedTest.Listener {
+            override fun onProgress(phase: SpeedTest.Phase, value: Double, progress: Float) {
+                speedBar.progress = (progress * 1000).toInt()
+                when (phase) {
+                    SpeedTest.Phase.PING -> {
+                        speedPhase.text = str(R.string.speed_ping)
+                        speedBig.text = String.format(Locale.US, "%.0f", value)
+                    }
+                    SpeedTest.Phase.DOWNLOAD -> {
+                        speedPhase.text = "↓ " + str(R.string.speed_down)
+                        speedBig.text = String.format(Locale.US, "%.1f", value)
+                    }
+                    SpeedTest.Phase.UPLOAD -> {
+                        speedPhase.text = "↑ " + str(R.string.speed_up)
+                        speedBig.text = String.format(Locale.US, "%.1f", value)
+                    }
+                    SpeedTest.Phase.DONE -> {}
+                }
+            }
+
+            override fun onDone(result: SpeedTest.Result?, error: String?) {
+                speedTest = null
+                speedBtn.text = str(R.string.speed_start)
+                (speedBtn.background as? GradientDrawable)?.setColor(0xFF1565C0.toInt())
+                when {
+                    result != null -> {
+                        speedVals["ping"]?.text = String.format(Locale.US, "%.0f", result.pingMs)
+                        speedVals["jitter"]?.text = String.format(Locale.US, "%.1f", result.jitterMs)
+                        speedVals["down"]?.text = String.format(Locale.US, "%.2f", result.downMbps)
+                        speedVals["up"]?.text = String.format(Locale.US, "%.2f", result.upMbps)
+                        speedBig.text = String.format(Locale.US, "%.1f", result.downMbps)
+                        speedPhase.text = getString(R.string.speed_done_fmt, String.format(Locale.US, "%.0f", result.dataMb))
+                        try { SpeedTest.save(this@MainActivity, result) } catch (e: Exception) { }
+                        renderSpeedHistory()
+                    }
+                    error != null -> {
+                        speedPhase.text = getString(R.string.error_fmt, error)
+                        speedBig.text = "--"
+                    }
+                    else -> {
+                        speedPhase.text = str(R.string.speed_cancelled)
+                        speedBig.text = "--"
+                        speedBar.progress = 0
+                    }
+                }
+            }
+        })
+        speedTest = st
+        st.start(
+            snap?.let { Monitor.opName(it) } ?: "--", Monitor.net.label(c?.tech), c?.level,
+            c?.let { Monitor.dir.name(it) ?: Monitor.cellIdText(it) } ?: "--",
+            loc?.latitude, loc?.longitude
+        )
+    }
+
     // ---------- INFO ----------
     private fun buildInfoPage(): View {
         val col = vbox()
@@ -929,17 +1134,55 @@ class MainActivity : AppCompatActivity() {
             val t = tv("${f.name}   ${f.length() / 1024} KB", 14f, p.text).apply {
                 setBackgroundColor(if (i % 2 == 0) p.panel else p.panel2)
                 setPadding(dp(12), dp(12), dp(12), dp(12))
-                setOnClickListener { shareFile(f) }
+                setOnClickListener { logOptions(f) }
             }
             logList.addView(t, mw())
         }
     }
 
-    private fun shareFile(f: File) {
+    private fun logOptions(f: File) {
+        val items = arrayOf(
+            str(R.string.exp_share_csv), str(R.string.exp_pdf), str(R.string.exp_kml), str(R.string.exp_gpx), str(R.string.exp_delete)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(f.name)
+            .setItems(items) { _, which ->
+                when (which) {
+                    0 -> shareFile(f, "text/csv")
+                    1 -> export(f, "application/pdf") { Exporter.pdf(this, it) }
+                    2 -> export(f, "application/vnd.google-earth.kml+xml") { Exporter.kml(this, it) }
+                    3 -> export(f, "application/gpx+xml") { Exporter.gpx(it) }
+                    4 -> AlertDialog.Builder(this)
+                        .setMessage(getString(R.string.exp_delete_confirm, f.name))
+                        .setPositiveButton(R.string.exp_delete) { _, _ ->
+                            if (Monitor.logging && Monitor.logger.file == f) {
+                                Toast.makeText(this, R.string.exp_in_use, Toast.LENGTH_SHORT).show()
+                            } else { f.delete(); renderLogList() }
+                        }
+                        .setNegativeButton(R.string.cancel, null)
+                        .show()
+                }
+            }
+            .show()
+    }
+
+    /** Builds an export file in the background, then opens the share sheet. */
+    private fun export(src: File, mime: String, make: (File) -> File) {
+        Toast.makeText(this, R.string.exp_working, Toast.LENGTH_SHORT).show()
+        Thread {
+            val result = try { Result.success(make(src)) } catch (e: Exception) { Result.failure(e) }
+            runOnUiThread {
+                result.onSuccess { shareFile(it, mime) }
+                    .onFailure { Toast.makeText(this, getString(R.string.share_failed, it.message ?: ""), Toast.LENGTH_LONG).show() }
+            }
+        }.start()
+    }
+
+    private fun shareFile(f: File, mime: String) {
         try {
             val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", f)
             val send = Intent(Intent.ACTION_SEND).apply {
-                type = "text/csv"
+                type = mime
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }

@@ -2,4 +2,5 @@
 <paths>
     <external-files-path name="logs" path="logs/" />
     <files-path name="logs_internal" path="logs/" />
+    <files-path name="internal" path="." />
 </paths>

@@ -40,6 +40,41 @@ object Prefs {
         get() = sp.getBoolean("onboarded", false)
         set(v) = sp.edit().putBoolean("onboarded", v).apply()
 
+    // ---------- alerts ----------
+    var alertsOn: Boolean
+        get() = sp.getBoolean("alerts_on", false)
+        set(v) = sp.edit().putBoolean("alerts_on", v).apply()
+
+    /** Weak-signal threshold in dBm (alert when level drops below). */
+    var alertWeakDbm: Int
+        get() = sp.getInt("alert_weak", -110)
+        set(v) = sp.edit().putInt("alert_weak", v).apply()
+
+    var alertWeak: Boolean
+        get() = sp.getBoolean("alert_weak_on", true)
+        set(v) = sp.edit().putBoolean("alert_weak_on", v).apply()
+
+    var alertNoService: Boolean
+        get() = sp.getBoolean("alert_nosvc", true)
+        set(v) = sp.edit().putBoolean("alert_nosvc", v).apply()
+
+    var alertTechChange: Boolean
+        get() = sp.getBoolean("alert_tech", false)
+        set(v) = sp.edit().putBoolean("alert_tech", v).apply()
+
+    var alertSound: Boolean
+        get() = sp.getBoolean("alert_sound", true)
+        set(v) = sp.edit().putBoolean("alert_sound", v).apply()
+
+    var alertVibrate: Boolean
+        get() = sp.getBoolean("alert_vibrate", true)
+        set(v) = sp.edit().putBoolean("alert_vibrate", v).apply()
+
+    /** Warned once that the speed test uses mobile data. */
+    var speedDataWarned: Boolean
+        get() = sp.getBoolean("speed_warned", false)
+        set(v) = sp.edit().putBoolean("speed_warned", v).apply()
+
     // ---------- unit formatting ----------
     fun distance(meters: Double): String =
         if (imperial) String.format(Locale.US, "%.2f mi", meters / 1609.344)

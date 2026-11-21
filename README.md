@@ -24,6 +24,15 @@ Works with every Bangladesh operator — Grameenphone, Robi, Airtel, Banglalink 
 - **Settings**: theme, language, units (metric or imperial), refresh interval, map style, keep screen on, OpenCelliD key, privacy policy.
 - **Play Store ready**: targets API 36, edge-to-edge layout, permission explanation screen, privacy policy, and a signed AAB from GitHub Actions. See `PLAY_STORE.md`.
 
+## Version 2.1 (Phase 2)
+- **SPEED tab**: ping, jitter, download and upload speed tested against Cloudflare's servers (speed.cloudflare.com). Each result is saved with the operator, network, signal level and GPS position. The history can be shared as a CSV file.
+- **Export a drive log** (DRIVE tab → tap a log):
+  - **PDF report**: summary, signal quality distribution, technology share, handovers, level-over-time chart, route plot and a top-cells table
+  - **KML**: open in Google Earth. Points are coloured by signal, with the route line and known towers.
+  - **GPX**: a track for any map app
+  - Share the CSV, or delete the log
+- **Signal alerts** (Settings → Alerts): weak signal (threshold from -100 to -120 dBm), no service, and network change (for example 4G → 3G), with sound, vibration and a notification. Alerts work while the app is open or a drive test is running.
+
 ## Build
 Push to the `main` branch. GitHub Actions builds `NetPulse.apk` and publishes it as a Release.
 You can also build locally: `gradle assembleDebug` (Gradle 8.14, JDK 17, Android SDK 36).

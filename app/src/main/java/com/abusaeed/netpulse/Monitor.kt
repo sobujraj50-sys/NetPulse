@@ -203,6 +203,7 @@ object Monitor {
         history.add(s.serving?.level to s.serving?.tech)
         if (history.size > HISTORY_MAX) history.removeAt(0)
         addTrackPoint(s)
+        if (hasPhonePerms()) Alerts.check(app, s)
         s.serving?.let { c -> dir.lookup(c) { notifyListeners() } }
         dir.updateMyAddress(freshLoc()) { notifyListeners() }
         if (logger.active) {

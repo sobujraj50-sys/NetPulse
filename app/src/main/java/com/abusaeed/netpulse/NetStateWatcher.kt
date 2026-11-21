@@ -87,7 +87,7 @@ class NetStateWatcher(private val ctx: Context) {
         val cc = ccBandwidthsKhz
         if (cc.isEmpty()) return "--"
         val parts = cc.joinToString(" + ") { k -> if (k % 1000 == 0) "${k / 1000}" else String.format(java.util.Locale.US, "%.1f", k / 1000.0) }
-        return "${cc.size} CC: $parts MHz"
+        return if (cc.size == 1) "No CA (1 carrier, $parts MHz)" else "${cc.size} CC: $parts MHz"
     }
 
     @RequiresApi(31)

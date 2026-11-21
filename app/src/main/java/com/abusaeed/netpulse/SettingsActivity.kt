@@ -173,6 +173,33 @@ class SettingsActivity : AppCompatActivity() {
                 .show()
         }
 
+        section(R.string.sec_alerts)
+        fun onOff(b: Boolean) = getString(if (b) R.string.on else R.string.off)
+        item(R.string.alerts_on, onOff(Prefs.alertsOn)) {
+            Prefs.alertsOn = !Prefs.alertsOn
+            if (Prefs.alertsOn && android.os.Build.VERSION.SDK_INT >= 33 &&
+                androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                androidx.core.app.ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 9)
+            }
+            build()
+        }
+        if (Prefs.alertsOn) {
+            val levels = listOf(-100, -105, -110, -115, -120)
+            val levelNames = levels.map { getString(R.string.alert_below_fmt, it) }
+            val li = levels.indexOf(Prefs.alertWeakDbm).coerceAtLeast(0)
+            item(R.string.alert_weak_on, onOff(Prefs.alertWeak)) { Prefs.alertWeak = !Prefs.alertWeak; build() }
+            item(R.string.alert_threshold, levelNames[li]) {
+                choose(R.string.alert_threshold, levelNames, li) { Prefs.alertWeakDbm = levels[it]; build() }
+            }
+            item(R.string.alert_nosvc_on, onOff(Prefs.alertNoService)) { Prefs.alertNoService = !Prefs.alertNoService; build() }
+            item(R.string.alert_tech_on, onOff(Prefs.alertTechChange)) { Prefs.alertTechChange = !Prefs.alertTechChange; build() }
+            item(R.string.alert_sound, onOff(Prefs.alertSound)) { Prefs.alertSound = !Prefs.alertSound; build() }
+            item(R.string.alert_vibrate, onOff(Prefs.alertVibrate)) { Prefs.alertVibrate = !Prefs.alertVibrate; build() }
+            item(R.string.alert_test, "") { Alerts.test(this) }
+        }
+
         section(R.string.sec_about)
         item(R.string.privacy_policy, "") {
             AlertDialog.Builder(this)
