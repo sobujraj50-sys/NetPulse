@@ -1,0 +1,86 @@
+name: Build NetPulse
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # If NetPulse.zip was uploaded (e.g. from a phone), unpack it into the repo and commit.
+      - name: Unpack uploaded zip
+        run: |
+          if [ -f NetPulse.zip ]; then
+            rm -rf /tmp/np && unzip -q NetPulse.zip -d /tmp/np
+            SRC=/tmp/np; [ -d /tmp/np/NetPulse ] && SRC=/tmp/np/NetPulse
+            rsync -a --exclude '.github' "$SRC"/ ./
+            git rm -q NetPulse.zip
+            git config user.name "github-actions[bot]"
+            git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "Unpack project from NetPulse.zip" || true
+            git push || true
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+
+      # Optional: release signing. Add these 4 repository secrets to get a
+      # Play-Store-ready signed AAB: KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD
+      - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "NETPULSE_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "SIGNED=true" >> "$GITHUB_ENV"
+          else
+            echo "SIGNED=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build
+        env:
+          NETPULSE_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          NETPULSE_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          NETPULSE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ "$SIGNED" = "true" ]; then
+            gradle assembleRelease bundleRelease --no-daemon --stacktrace
+            cp app/build/outputs/apk/release/app-release.apk NetPulse.apk
+            cp app/build/outputs/bundle/release/app-release.aab NetPulse.aab
+          else
+            gradle assembleDebug --no-daemon --stacktrace
+            cp app/build/outputs/apk/debug/app-debug.apk NetPulse.apk
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NetPulse
+          path: |
+            NetPulse.apk
+            NetPulse.aab
+          if-no-files-found: ignore
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: NetPulse build ${{ github.run_number }}
+          files: NetPulse.apk
+          make_latest: true
