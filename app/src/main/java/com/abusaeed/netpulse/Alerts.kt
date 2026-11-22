@@ -70,7 +70,7 @@ object Alerts {
     /** Plays the alert once so the user can hear/feel it from Settings. */
     fun test(ctx: Context) = signal(ctx)
 
-    private fun fire(ctx: Context, key: String, title: String, text: String) {
+    fun fire(ctx: Context, key: String, title: String, text: String) {
         val now = System.currentTimeMillis()
         if (now - (lastFired[key] ?: 0L) < COOLDOWN_MS) return
         lastFired[key] = now

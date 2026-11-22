@@ -49,7 +49,8 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private lateinit var p: Palette
-    private val pages = arrayOfNulls<View>(6)
+    private val pages = arrayOfNulls<View>(7)
+    private lateinit var wifiPage: WifiPage
     private val tabButtons = ArrayList<TextView>()
     private var currentTab = 0
 
@@ -66,6 +67,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var towerAddrTv: TextView
     private lateinit var towerTv: TextView
     private lateinit var myAddrTv: TextView
+    private lateinit var simpleCard: LinearLayout
+    private lateinit var detailBox: LinearLayout
+    private lateinit var simpleBars: SignalBarsView
+    private lateinit var simpleWord: TextView
+    private lateinit var simpleInfo: TextView
+    private lateinit var simpleTip: TextView
     private var shownEventsTop: Monitor.EventRow? = null
     private var shownEventsCount = -1
 
@@ -145,6 +152,8 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         map?.onResume()
         applyMapStyle()
+        applyViewMode()
+        if (Prefs.statusBar && !StatusService.running && Monitor.hasLocPerm()) StatusService.start(this)
         renderCurrent()
     }
 
@@ -322,13 +331,20 @@ class MainActivity : AppCompatActivity() {
         pages[3] = buildSpeedPage()
         pages[4] = buildInfoPage()
         pages[5] = buildDrivePage()
+        wifiPage = WifiPage(this, p)
+        pages[6] = wifiPage.build()
         pages.forEach { frame.addView(it, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)) }
         root.addView(frame, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
         // bottom tabs
         val tabs = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf(R.string.tab_cell, R.string.tab_nei, R.string.tab_map, R.string.tab_speed, R.string.tab_info, R.string.tab_drive).forEachIndexed { i, res ->
+        // visual order -> page index
+        listOf(
+            0 to R.string.tab_cell, 1 to R.string.tab_nei, 6 to R.string.tab_wifi, 2 to R.string.tab_map,
+            3 to R.string.tab_speed, 5 to R.string.tab_drive, 4 to R.string.tab_info
+        ).forEach { (i, res) ->
             val t = tv(str(res), 13f, Color.WHITE, false, Gravity.CENTER).apply {
+                tag = i
                 setPadding(0, dp(14), 0, dp(14))
                 setSingleLine(true)
                 setAutoSizeTextTypeUniformWithConfiguration(9, 13, 1, android.util.TypedValue.COMPLEX_UNIT_SP)
@@ -345,10 +361,12 @@ class MainActivity : AppCompatActivity() {
     private fun selectTab(i: Int) {
         currentTab = i
         pages.forEachIndexed { idx, v -> v?.visibility = if (idx == i) View.VISIBLE else View.GONE }
-        tabButtons.forEachIndexed { idx, t ->
-            t.setBackgroundColor(if (idx == i) 0xFF3D3D3D.toInt() else p.header)
-            t.setTextColor(if (idx == i) 0xFF00E676.toInt() else 0xFFAAAAAA.toInt())
+        tabButtons.forEach { t ->
+            val sel = t.tag == i
+            t.setBackgroundColor(if (sel) 0xFF3D3D3D.toInt() else p.header)
+            t.setTextColor(if (sel) 0xFF00E676.toInt() else 0xFFAAAAAA.toInt())
         }
+        if (i == 6) { wifiPage.onVisibleTick(); wifiPage.render() }
         if (i == 5) renderLogList()
         if (i == 3) renderSpeedHistory()
         renderCurrent()
@@ -377,6 +395,7 @@ class MainActivity : AppCompatActivity() {
             3 -> renderSpeedContext(snap)
             4 -> renderInfo(snap)
             5 -> renderDrive()
+            6 -> wifiPage.onVisibleTick()
         }
     }
 
@@ -451,30 +470,139 @@ class MainActivity : AppCompatActivity() {
         val evHeader = tableRow(listOf("TIME", "EVENT", "TECH", "CELL", "PCI", "ARFCN", "LEVEL", "QUAL"), evW, p.header, Color.WHITE)
         eventTable = vbox()
 
+        // ---- simple view ----
+        simpleCard = vbox(p.panel).apply {
+            setPadding(dp(18), dp(18), dp(18), dp(18))
+            gravity = Gravity.CENTER_HORIZONTAL
+        }
+        simpleBars = SignalBarsView(this, p)
+        simpleCard.addView(simpleBars, LinearLayout.LayoutParams(dp(200), dp(110)).apply { gravity = Gravity.CENTER_HORIZONTAL })
+        simpleWord = tv("--", 34f, p.text, true, Gravity.CENTER)
+        simpleCard.addView(simpleWord, mw().apply { topMargin = dp(10) })
+        simpleInfo = tv("--", 16f, p.label, gravity = Gravity.CENTER)
+        simpleCard.addView(simpleInfo, mw())
+        simpleTip = tv("", 15f, p.text, gravity = Gravity.CENTER).apply { setPadding(0, dp(10), 0, 0) }
+        simpleCard.addView(simpleTip, mw())
+        val quick = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        quick.addView(button(str(R.string.speed_short), 0xFF1565C0.toInt()) { selectTab(3) },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        quick.addView(button(str(R.string.view_detailed), p.button) { Prefs.simpleMode = false; applyViewMode() },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(8) })
+        simpleCard.addView(quick, mw().apply { topMargin = dp(14) })
+        col.addView(simpleCard, mw())
+
+        // "why is my internet slow?" — both views
+        val diagBtn = button(str(R.string.diag_btn), 0xFF6A1B9A.toInt()) { runDiagnosis() }
+        val toolRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(10), dp(8), dp(10), dp(8)) }
+        toolRow.addView(diagBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        val finderBtn = button(str(R.string.finder_btn), 0xFF00796B.toInt()) {
+            startActivity(Intent(this@MainActivity, FinderActivity::class.java))
+        }
+        toolRow.addView(finderBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(8) })
+        col.addView(toolRow, mw())
+        col.addView(s0, mw())
+
+        detailBox = vbox()
         if (wide) {
             // tablet / landscape: two columns
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             val left = vbox()
             val right = vbox()
-            listOf(s0, s1, s2, s3).forEach { left.addView(it, mw()) }
+            listOf(s1, s2, s3).forEach { left.addView(it, mw()) }
             right.addView(graph, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(220)))
             right.addView(servingTimeTv, mw())
             right.addView(evHeader, mw())
             right.addView(eventTable, mw())
             row.addView(left, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             row.addView(right, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(8) })
-            col.addView(row, mw())
+            detailBox.addView(row, mw())
         } else {
-            col.addView(s0, mw())
-            col.addView(s1, mw())
-            col.addView(graph, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(120)))
-            col.addView(s2, mw())
-            col.addView(s3, mw())
-            col.addView(servingTimeTv, mw())
-            col.addView(evHeader, mw())
-            col.addView(eventTable, mw())
+            detailBox.addView(s1, mw())
+            detailBox.addView(graph, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(120)))
+            detailBox.addView(s2, mw())
+            detailBox.addView(s3, mw())
+            detailBox.addView(servingTimeTv, mw())
+            detailBox.addView(evHeader, mw())
+            detailBox.addView(eventTable, mw())
         }
+        col.addView(detailBox, mw())
+        applyViewModeLater = true
         return ScrollView(this).apply { addView(col) }
+    }
+
+    private var applyViewModeLater = false
+
+    private fun applyViewMode() {
+        if (!::simpleCard.isInitialized) return
+        val simple = Prefs.simpleMode
+        simpleCard.visibility = if (simple) View.VISIBLE else View.GONE
+        detailBox.visibility = if (simple) View.GONE else View.VISIBLE
+        renderCurrent()
+    }
+
+    private fun renderSimple(snap: Snapshot) {
+        val n = ActiveNet.get(this)
+        val c = snap.serving
+        simpleBars.level = c?.level; simpleBars.tech = c?.tech; simpleBars.invalidate()
+        val wordRes = Sig.wordRes(c?.tech, c?.level)
+        simpleWord.text = str(wordRes)
+        simpleWord.setTextColor(Sig.color(c?.tech, c?.level))
+        simpleInfo.text = Monitor.opName(snap) + "  •  " + Monitor.net.label(c?.tech) + "  •  " +
+            (c?.level?.let { "$it dBm" } ?: "--") + "\n" + str(R.string.simple_internet) + ": " +
+            when (n.type) {
+                ActiveNet.Type.WIFI -> str(R.string.conn_wifi) + " (" + n.name + ")"
+                ActiveNet.Type.MOBILE -> getString(R.string.conn_mobile_fmt, n.sim ?: "SIM") + " " + n.name
+                ActiveNet.Type.NONE -> str(R.string.none)
+                else -> n.tech
+            }
+        simpleTip.text = str(when (wordRes) {
+            R.string.q_excellent -> R.string.tip_excellent
+            R.string.q_good -> R.string.tip_good
+            R.string.q_fair -> R.string.tip_fair
+            R.string.q_poor -> R.string.tip_poor
+            R.string.q_bad -> R.string.tip_bad
+            else -> R.string.tip_none
+        })
+    }
+
+    // ---------- diagnosis ----------
+    private fun runDiagnosis() {
+        val box = vbox().apply { setPadding(dp(22), dp(6), dp(22), dp(6)) }
+        val status = tv(str(R.string.diag_running), 16f, p.text, true)
+        box.addView(status, mw())
+        val stats = tv("", 13f, p.label).apply { setPadding(0, dp(4), 0, dp(6)) }
+        box.addView(stats, mw())
+        val list = vbox()
+        box.addView(list, mw())
+        val bar = android.widget.ProgressBar(this).apply { isIndeterminate = true }
+        box.addView(bar, LinearLayout.LayoutParams(dp(36), dp(36)).apply { gravity = Gravity.CENTER_HORIZONTAL; topMargin = dp(8) })
+        AlertDialog.Builder(this)
+            .setTitle(R.string.diag_title)
+            .setView(ScrollView(this).apply { addView(box) })
+            .setPositiveButton(R.string.diag_close, null)
+            .show()
+        Diagnose.run(this, object : Diagnose.Listener {
+            override fun onStep(step: Int) { status.text = str(step) }
+            override fun onDone(r: Diagnose.Report) {
+                bar.visibility = View.GONE
+                val worst = r.findings.firstOrNull { it.sev > 0 }
+                status.text = if (worst == null) str(R.string.diag_verdict_ok)
+                else getString(R.string.diag_verdict, getString(worst.title, *worst.args.toTypedArray()))
+                status.setTextColor(if (worst == null) Sig.GREEN else if (worst.sev == 2) Sig.RED else Sig.ORANGE)
+                stats.text = listOfNotNull(
+                    r.pingMs?.let { "Ping ${it.toInt()} ms" }, r.lossPct?.let { "Loss $it%" },
+                    r.dnsMs?.let { "DNS ${it.toInt()} ms" }, r.mbps?.let { String.format(Locale.US, "↓ %.1f Mbps", it) }
+                ).joinToString("  •  ")
+                list.removeAllViews()
+                r.findings.forEach { f ->
+                    val icon = when (f.sev) { 0 -> "✅"; 1 -> "⚠️"; else -> "❌" }
+                    val t = tv(icon + "  " + getString(f.title, *f.args.toTypedArray()), 15f, p.text, true).apply { setPadding(0, dp(10), 0, 0) }
+                    list.addView(t, mw())
+                    val d = str(f.detail)
+                    if (d.isNotBlank()) list.addView(tv(d, 14f, p.label).apply { setPadding(dp(28), dp(2), 0, 0) }, mw())
+                }
+            }
+        })
     }
 
     private fun renderEvents() {
@@ -506,6 +634,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun renderCell(snap: Snapshot) {
         updateHint(snap)
+        if (applyViewModeLater) { applyViewModeLater = false; applyViewMode(); return }
+        if (Prefs.simpleMode) { renderSimple(snap); renderNameAddress(snap.serving); return }
         val c = snap.serving
         val opInfo = Operators.find(c?.mcc, c?.mnc) ?: Operators.fromCode(snap.operatorCode)
         val code = snap.operatorCode
@@ -925,13 +1055,27 @@ class MainActivity : AppCompatActivity() {
         return ScrollView(this).apply { addView(col) }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun renderSpeedContext(snap: Snapshot) {
         if (speedTest != null) return
-        val c = snap.serving
-        speedCtx.text = getString(
-            R.string.speed_context, "Cloudflare", Monitor.opName(snap),
-            Monitor.net.label(c?.tech), c?.level?.let { "$it dBm" } ?: "--", dataInfo().first
-        )
+        speedCtx.text = connText(ActiveNet.get(this), null, "Cloudflare")
+    }
+
+    /** "Wi-Fi: MyHome • Wi-Fi 5 GHz • -55 dBm" or "Mobile data (SIM2): Grameenphone • 4G LTE • -75 dBm" */
+    private fun connText(n: ActiveNet.Info, isp: String?, server: String?): String {
+        val head = when (n.type) {
+            ActiveNet.Type.WIFI -> str(R.string.conn_wifi) + ": " + n.name
+            ActiveNet.Type.MOBILE -> getString(R.string.conn_mobile_fmt, n.sim ?: "SIM") + ": " + n.name
+            ActiveNet.Type.NONE -> str(R.string.speed_no_internet)
+            else -> n.tech
+        }
+        val parts = mutableListOf(head)
+        if (n.type == ActiveNet.Type.WIFI || n.type == ActiveNet.Type.MOBILE) parts.add(n.tech)
+        n.level?.let { parts.add("$it dBm") }
+        val sb = StringBuilder(parts.joinToString("  •  "))
+        isp?.let { sb.append('\n').append(getString(R.string.speed_isp_fmt, it)) }
+        server?.let { sb.append('\n').append(getString(R.string.speed_server_fmt, it)) }
+        return sb.toString()
     }
 
     private fun renderSpeedHistory() {
@@ -944,7 +1088,14 @@ class MainActivity : AppCompatActivity() {
         }
         h.take(40).forEachIndexed { i, r ->
             val line1 = "↓ ${r["download_mbps"]}   ↑ ${r["upload_mbps"]} Mbps   •   ${r["ping_ms"]} ms"
-            val line2 = "${r["time"]}  •  ${r["operator"]}  ${r["network"]}  ${r["level_dbm"]?.let { if (it.isBlank()) "" else "$it dBm" }}"
+            val conn = r["connection"].orEmpty()
+            val who = when (conn) {
+                "Wi-Fi" -> "Wi-Fi: " + listOfNotNull(r["isp"]?.ifBlank { null }, r["operator"]?.ifBlank { null }?.let { "($it)" }).joinToString(" ")
+                "Mobile" -> listOfNotNull(r["sim"]?.ifBlank { null }, r["operator"]?.ifBlank { null }, r["network"]?.ifBlank { null }).joinToString(" ")
+                else -> listOfNotNull(r["operator"]?.ifBlank { null }, r["network"]?.ifBlank { null }).joinToString(" ")
+            }
+            val lvl = r["level_dbm"]?.ifBlank { null }?.let { "  $it dBm" } ?: ""
+            val line2 = "${r["time"]}  •  $who$lvl"
             val t = tv("$line1\n$line2", 13f, p.text).apply {
                 setBackgroundColor(if (i % 2 == 0) p.panel else p.panel2)
                 setPadding(dp(12), dp(10), dp(12), dp(10))
@@ -983,12 +1134,14 @@ class MainActivity : AppCompatActivity() {
         speedBar.progress = 0
         speedBtn.text = str(R.string.speed_stop)
         (speedBtn.background as? GradientDrawable)?.setColor(0xFFC62828.toInt())
-        val snap = Monitor.snap
-        val c = snap?.serving
         val loc = Monitor.freshLoc()
-        val st = SpeedTest(object : SpeedTest.Listener {
+        val netAtStart = ActiveNet.get(this)
+        speedCtx.text = connText(netAtStart, null, null)
+        lateinit var st: SpeedTest
+        st = SpeedTest(object : SpeedTest.Listener {
             override fun onProgress(phase: SpeedTest.Phase, value: Double, progress: Float) {
                 speedBar.progress = (progress * 1000).toInt()
+                if (phase == SpeedTest.Phase.PING && st.isp != null) speedCtx.text = connText(netAtStart, st.isp, st.server)
                 when (phase) {
                     SpeedTest.Phase.PING -> {
                         speedPhase.text = str(R.string.speed_ping)
@@ -1018,6 +1171,7 @@ class MainActivity : AppCompatActivity() {
                         speedVals["up"]?.text = String.format(Locale.US, "%.2f", result.upMbps)
                         speedBig.text = String.format(Locale.US, "%.1f", result.downMbps)
                         speedPhase.text = getString(R.string.speed_done_fmt, String.format(Locale.US, "%.0f", result.dataMb))
+                        speedCtx.text = connText(netAtStart, result.isp, result.server)
                         try { SpeedTest.save(this@MainActivity, result) } catch (e: Exception) { }
                         renderSpeedHistory()
                     }
@@ -1034,18 +1188,46 @@ class MainActivity : AppCompatActivity() {
             }
         })
         speedTest = st
-        st.start(
-            snap?.let { Monitor.opName(it) } ?: "--", Monitor.net.label(c?.tech), c?.level,
-            c?.let { Monitor.dir.name(it) ?: Monitor.cellIdText(it) } ?: "--",
-            loc?.latitude, loc?.longitude
-        )
+        st.start(netAtStart, loc?.latitude, loc?.longitude)
     }
 
     // ---------- INFO ----------
+    /** Tool hub: two buttons per row. Later phases add their screens here. */
+    private val hubItems: List<Pair<Int, Class<*>>> by lazy {
+        listOf(
+            R.string.hub_data to DataUsageActivity::class.java,
+            R.string.hub_operator to OperatorToolsActivity::class.java,
+            R.string.hub_history to HistoryActivity::class.java,
+            R.string.hub_area to AreaActivity::class.java,
+            R.string.hub_report to SpeedReportActivity::class.java,
+            R.string.finder_title to FinderActivity::class.java,
+        ) + extraHubItems()
+    }
+
+    /** Filled in by later phases. */
+    private fun extraHubItems(): List<Pair<Int, Class<*>>> = listOf(
+        R.string.hub_quality to QualityActivity::class.java,
+        R.string.hub_tools to NetToolsActivity::class.java,
+        R.string.hub_analysis to AnalysisActivity::class.java,
+        R.string.hub_indoor to IndoorActivity::class.java,
+        R.string.hub_security to SecurityActivity::class.java,
+    )
+
     private fun buildInfoPage(): View {
         val col = vbox()
+        col.addView(tv(str(R.string.hub_title), 17f, p.text, true).apply { setPadding(dp(12), dp(12), dp(12), dp(4)) }, mw())
+        hubItems.chunked(2).forEach { pair ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; setPadding(dp(12), dp(4), dp(12), dp(4)) }
+            pair.forEachIndexed { i, (res, cls) ->
+                row.addView(button(str(res), 0xFF263238.toInt()) { startActivity(Intent(this, cls)) },
+                    LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { if (i > 0) marginStart = dp(8) })
+            }
+            if (pair.size == 1) row.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f).apply { marginStart = dp(8) })
+            col.addView(row, mw())
+        }
+        col.addView(tv(str(R.string.hub_info), 17f, p.text, true).apply { setPadding(dp(12), dp(14), dp(12), dp(4)) }, mw())
         val keyBtn = button(str(R.string.set_api_key_btn), p.button) { editApiKey() }
-        col.addView(keyBtn, mw().apply { setMargins(dp(12), dp(10), dp(12), dp(6)) })
+        col.addView(keyBtn, mw().apply { setMargins(dp(12), dp(6), dp(12), dp(6)) })
         infoTable = vbox().apply { setPadding(0, dp(4), 0, dp(4)) }
         col.addView(infoTable, mw())
         return ScrollView(this).apply { addView(col) }
@@ -1103,6 +1285,12 @@ class MainActivity : AppCompatActivity() {
         col.addView(tv(str(R.string.drive_desc), 13f, p.label).apply { setPadding(0, dp(4), 0, dp(12)) }, mw())
         driveBtn = button(str(R.string.start_logging), 0xFF2E7D32.toInt()) { toggleDrive() }
         col.addView(driveBtn, mw())
+        lateinit var testsBtn: TextView
+        testsBtn = button(str(R.string.drive_tests) + ": " + str(if (Prefs.driveTests) R.string.on else R.string.off), p.button) {
+            Prefs.driveTests = !Prefs.driveTests
+            testsBtn.text = str(R.string.drive_tests) + ": " + str(if (Prefs.driveTests) R.string.on else R.string.off)
+        }
+        col.addView(testsBtn, mw().apply { topMargin = dp(8) })
         driveStatus = tv("", 15f, p.text).apply {
             setBackgroundColor(p.panel); setPadding(dp(12), dp(10), dp(12), dp(10))
             setLineSpacing(0f, 1.25f)
@@ -1185,17 +1373,22 @@ class MainActivity : AppCompatActivity() {
 
     private fun logOptions(f: File) {
         val items = arrayOf(
-            str(R.string.exp_share_csv), str(R.string.exp_pdf), str(R.string.exp_kml), str(R.string.exp_gpx), str(R.string.exp_delete)
+            str(R.string.exp_analysis), str(R.string.exp_pdf), str(R.string.exp_kml), str(R.string.exp_kml3d), str(R.string.exp_gpx),
+            str(R.string.exp_ocid), str(R.string.exp_cellmapper), str(R.string.exp_share_csv), str(R.string.exp_delete)
         )
         AlertDialog.Builder(this)
             .setTitle(f.name)
             .setItems(items) { _, which ->
                 when (which) {
-                    0 -> shareFile(f, "text/csv")
+                    0 -> startActivity(Intent(this, AnalysisActivity::class.java).putExtra(AnalysisActivity.EXTRA_FILE, f.absolutePath))
                     1 -> export(f, "application/pdf") { Exporter.pdf(this, it) }
                     2 -> export(f, "application/vnd.google-earth.kml+xml") { Exporter.kml(this, it) }
-                    3 -> export(f, "application/gpx+xml") { Exporter.gpx(it) }
-                    4 -> AlertDialog.Builder(this)
+                    3 -> export(f, "application/vnd.google-earth.kml+xml") { Exporter.kml3d(it) }
+                    4 -> export(f, "application/gpx+xml") { Exporter.gpx(it) }
+                    5 -> export(f, "text/csv") { Exporter.openCellIdCsv(it) }
+                    6 -> export(f, "text/csv") { Exporter.cellMapperCsv(it) }
+                    7 -> shareFile(f, "text/csv")
+                    8 -> AlertDialog.Builder(this)
                         .setMessage(getString(R.string.exp_delete_confirm, f.name))
                         .setPositiveButton(R.string.exp_delete) { _, _ ->
                             if (Monitor.logging && Monitor.logger.file == f) {

@@ -44,7 +44,7 @@ class DriveLogger(private val ctx: Context) {
             it.write(
                 "time,sim,operator,tech,mcc,mnc,lac_tac,cell_id,node,local_cid,pci_psc,arfcn,band," +
                     "dl_mhz,level_dbm,qual_db,snr_db,rssi_dbm,ta,lat,lon,speed_kmh,alt_m,acc_m," +
-                    "dl_kbps,ul_kbps,neighbors,cell_name,tower_address,network,ca_carriers\n"
+                    "dl_kbps,ul_kbps,neighbors,cell_name,tower_address,network,ca_carriers,ping_ms,test_dl_mbps,nbrs\n"
             )
         }
         samples = 0; startMs = System.currentTimeMillis(); distanceM = 0.0; prevLoc = null
@@ -70,7 +70,8 @@ class DriveLogger(private val ctx: Context) {
 
     fun log(
         snap: Snapshot, loc: Location?, sim: String, dlKbps: Double, ulKbps: Double,
-        cellName: String?, towerAddress: String?, netLabel: String, ccCount: Int
+        cellName: String?, towerAddress: String?, netLabel: String, ccCount: Int,
+        pingMs: Double? = null, testDlMbps: Double? = null
     ) {
         val w = writer ?: return
         val c = snap.serving
@@ -92,7 +93,10 @@ class DriveLogger(private val ctx: Context) {
             loc?.let { if (it.hasAltitude()) n(it.altitude) else "" },
             loc?.let { if (it.hasAccuracy()) n(it.accuracy) else "" },
             String.format(Locale.US, "%.1f", dlKbps), String.format(Locale.US, "%.1f", ulKbps),
-            snap.neighbors.size.toString(), q(cellName), q(towerAddress), q(netLabel), ccCount.toString()
+            snap.neighbors.size.toString(), q(cellName), q(towerAddress), q(netLabel), ccCount.toString(),
+            pingMs?.let { String.format(Locale.US, "%.0f", it) } ?: "", testDlMbps?.let { String.format(Locale.US, "%.2f", it) } ?: "",
+            // up to 8 strongest neighbours: tech:pci:arfcn:level|...
+            snap.neighbors.take(8).joinToString("|") { "${it.tech}:${it.pci ?: ""}:${it.arfcn ?: ""}:${it.level ?: ""}" }
         ).joinToString(",") { it ?: "" }
         try {
             w.write(row); w.write("\n")

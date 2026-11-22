@@ -15,8 +15,8 @@ android {
         applicationId = "com.abusaeed.netpulse"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
-        versionName = "2.2"
+        versionCode = 14
+        versionName = "6.1"
     }
 
     signingConfigs {
@@ -65,4 +65,5 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("com.google.android.material:material:1.12.0")
     implementation("org.osmdroid:osmdroid-android:6.1.18")
+    implementation("androidx.work:work-runtime-ktx:2.10.0")
 }

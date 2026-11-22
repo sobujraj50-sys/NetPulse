@@ -30,9 +30,22 @@ class SpeedTest(private val listener: Listener) {
     data class Result(
         val time: Long, val pingMs: Double, val jitterMs: Double,
         val downMbps: Double, val upMbps: Double, val dataMb: Double,
-        val operator: String, val network: String, val level: Int?, val cell: String,
+        /** "Wi-Fi" / "Mobile" / "Ethernet" */
+        val connection: String,
+        /** SSID for Wi-Fi, operator for mobile data */
+        val name: String, val sim: String?, val network: String, val level: Int?, val cell: String?,
+        /** Internet provider as seen by the server (e.g. Link3, Grameenphone) */
+        val isp: String?, val server: String?,
         val lat: Double?, val lon: Double?
     )
+
+    /** Filled in at the start of the test from Cloudflare's /meta. */
+    @Volatile
+    var isp: String? = null
+        private set
+    @Volatile
+    var server: String? = null
+        private set
 
     @Volatile
     var cancelled = false
@@ -41,18 +54,24 @@ class SpeedTest(private val listener: Listener) {
 
     fun cancel() { cancelled = true }
 
-    fun start(operator: String, network: String, level: Int?, cell: String, lat: Double?, lon: Double?) {
+    fun start(net: ActiveNet.Info, lat: Double?, lon: Double?) {
         Thread {
             try {
+                fetchMeta()
                 val (ping, jitter) = measurePing()
                 if (cancelled) throw InterruptedException()
                 val (down, downBytes) = measure(download = true, progressFrom = 0.15f)
                 if (cancelled) throw InterruptedException()
                 val (up, upBytes) = measure(download = false, progressFrom = 0.575f)
                 if (cancelled) throw InterruptedException()
+                val conn = when (net.type) {
+                    ActiveNet.Type.WIFI -> "Wi-Fi"; ActiveNet.Type.MOBILE -> "Mobile"
+                    ActiveNet.Type.ETHERNET -> "Ethernet"; else -> "Other"
+                }
                 val r = Result(
                     System.currentTimeMillis(), ping, jitter, down, up,
-                    (downBytes + upBytes) / 1_000_000.0, operator, network, level, cell, lat, lon
+                    (downBytes + upBytes) / 1_000_000.0, conn, net.name, net.sim, net.tech, net.level, net.cell,
+                    isp, server, lat, lon
                 )
                 main.post { listener.onProgress(Phase.DONE, 0.0, 1f); listener.onDone(r, null) }
             } catch (e: InterruptedException) {
@@ -65,6 +84,22 @@ class SpeedTest(private val listener: Listener) {
 
     private fun post(phase: Phase, value: Double, progress: Float) {
         main.post { listener.onProgress(phase, value, progress) }
+    }
+
+    /** Who the internet provider is (as seen from outside) and which Cloudflare site serves us. */
+    private fun fetchMeta() {
+        try {
+            val c = URL("$BASE/meta").openConnection() as HttpURLConnection
+            c.connectTimeout = 6000; c.readTimeout = 6000
+            val body = c.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
+            c.disconnect()
+            val j = org.json.JSONObject(body)
+            isp = j.optString("asOrganization", "").ifBlank { null }
+            val colo = j.optJSONObject("colo")?.let { it.optString("iata", "") + " " + it.optString("city", "") }
+                ?: j.optString("colo", "")
+            server = ("Cloudflare " + colo).trim()
+            main.post { listener.onProgress(Phase.PING, 0.0, 0.01f) }
+        } catch (e: Exception) { /* optional: unofficial endpoint */ }
     }
 
     // ---------- ping ----------
@@ -185,18 +220,33 @@ class SpeedTest(private val listener: Listener) {
 
         // ---------- history ----------
         private fun file(ctx: Context) = File(ctx.filesDir, "speedtests.csv")
-        private const val HEADER = "time,ping_ms,jitter_ms,download_mbps,upload_mbps,data_mb,operator,network,level_dbm,cell,lat,lon"
+        private val COLUMNS = listOf(
+            "time", "ping_ms", "jitter_ms", "download_mbps", "upload_mbps", "data_mb", "connection",
+            "operator", "sim", "network", "level_dbm", "cell", "isp", "server", "lat", "lon"
+        )
+        private val HEADER = COLUMNS.joinToString(",")
+        private fun q(s: String) = if (s.contains(',') || s.contains('"')) "\"" + s.replace("\"", "\"\"") + "\"" else s
+
+        /** Older history files used fewer columns: rewrite them with the new header. */
+        private fun migrate(f: File) {
+            val first = f.bufferedReader().use { it.readLine() } ?: return
+            if (first == HEADER) return
+            val rows = Exporter.readCsv(f)
+            val sb = StringBuilder(HEADER).append('\n')
+            rows.forEach { r -> sb.append(COLUMNS.joinToString(",") { q(r[it] ?: "") }).append('\n') }
+            f.writeText(sb.toString())
+        }
 
         fun save(ctx: Context, r: Result) {
             val f = file(ctx)
             val newFile = !f.exists()
+            if (!newFile) migrate(f)
             val t = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date(r.time))
-            fun q(s: String) = if (s.contains(',') || s.contains('"')) "\"" + s.replace("\"", "\"\"") + "\"" else s
             val line = listOf(
                 t, String.format(Locale.US, "%.1f", r.pingMs), String.format(Locale.US, "%.1f", r.jitterMs),
                 String.format(Locale.US, "%.2f", r.downMbps), String.format(Locale.US, "%.2f", r.upMbps),
-                String.format(Locale.US, "%.1f", r.dataMb), q(r.operator), q(r.network),
-                r.level?.toString() ?: "", q(r.cell),
+                String.format(Locale.US, "%.1f", r.dataMb), r.connection, q(r.name), r.sim ?: "", q(r.network),
+                r.level?.toString() ?: "", q(r.cell ?: ""), q(r.isp ?: ""), q(r.server ?: ""),
                 r.lat?.let { String.format(Locale.US, "%.6f", it) } ?: "",
                 r.lon?.let { String.format(Locale.US, "%.6f", it) } ?: ""
             ).joinToString(",")
@@ -211,6 +261,19 @@ class SpeedTest(private val listener: Listener) {
         }
 
         fun historyFile(ctx: Context): File? = file(ctx).takeIf { it.exists() }
+
+        /** Runs a whole test on the calling (background) thread; for scheduled tests. */
+        fun runBlocking(net: ActiveNet.Info, lat: Double?, lon: Double?): Result? {
+            val latch = java.util.concurrent.CountDownLatch(1)
+            var out: Result? = null
+            val st = SpeedTest(object : Listener {
+                override fun onProgress(phase: Phase, value: Double, progress: Float) {}
+                override fun onDone(result: Result?, error: String?) { out = result; latch.countDown() }
+            })
+            st.start(net, lat, lon)
+            if (!latch.await(120, java.util.concurrent.TimeUnit.SECONDS)) { st.cancel(); return null }
+            return out
+        }
 
         fun clear(ctx: Context) { file(ctx).delete() }
     }

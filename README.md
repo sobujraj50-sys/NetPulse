@@ -40,6 +40,12 @@ When OpenCelliD doesn't know a tower, NetPulse works out where it is from your o
 - The CELL tab shows "Tower (estimated)" with the position, distance, a ± uncertainty, an accuracy level (Low / Medium / High) and the street address. The MAP tab shows a purple triangle with an uncertainty circle, plus every other tower estimated so far ("Towers" button). Estimated towers are also added to KML exports.
 - In tests with simulated data, the error was about 30–40 m when driving around the tower, about 15 m with TA, and about 300 m from one straight road. A straight road is always marked "Low", because the app can't tell which side of the road the tower is on.
 
+## Version 3.0–6.0 (Phases 3–6)
+- **Phase 3 (everyday users):** Simple view, "Why is my internet slow?" check, live dBm in the status bar, home-screen widget, signal & tower finder (beep + compass), Wi-Fi tab (scanner, channel graph, best channel, router info, Wi-Fi 6/7, security audit), data usage with a monthly limit alert, operator USSD shortcuts, 24-hour signal history, outages, call-drop log, best operator in your area, automatic speed tests and a monthly ISP report.
+- **Phase 4 (network tools & QoE):** live ICMP ping chart, traceroute, DNS lookup and fastest-DNS comparison, connection-quality test (bufferbloat grade, call MOS, web page load, video streaming estimate, Google vs Cloudflare, IPv6, CGNAT, MTU), ping and speed tests during drive tests.
+- **Phase 5 (RF engineering):** analysis of each drive log (signal / best-server / technology / throughput maps, sector azimuth wedges, handover ping-pong/late/IRAT, pilot pollution, PCI collision and confusion, band statistics, throughput vs signal), indoor floor-plan heatmap for mobile and Wi-Fi, 3D KML, OpenCelliD and CellMapper upload files, and an RF-analysis page in the PDF report.
+- **Phase 6 (security):** fake-tower (IMSI-catcher) warning signs with alerts, Wi-Fi evil-twin detection (heuristic warnings, not proof).
+
 ## Build
 Push to the `main` branch. GitHub Actions builds `NetPulse.apk` and publishes it as a Release.
 You can also build locally: `gradle assembleDebug` (Gradle 8.14, JDK 17, Android SDK 36).

@@ -40,6 +40,52 @@ object Prefs {
         get() = sp.getBoolean("onboarded", false)
         set(v) = sp.edit().putBoolean("onboarded", v).apply()
 
+    /** Simple view for everyday users (big signal meter, plain words). */
+    var simpleMode: Boolean
+        get() = sp.getBoolean("simple_mode", false)
+        set(v) = sp.edit().putBoolean("simple_mode", v).apply()
+
+    /** Live dBm in the status bar. */
+    var statusBar: Boolean
+        get() = sp.getBoolean("status_bar", false)
+        set(v) = sp.edit().putBoolean("status_bar", v).apply()
+
+    /** Monthly mobile data limit in MB (0 = no limit) and the day the month starts. */
+    var dataLimitMb: Int
+        get() = sp.getInt("data_limit_mb", 0)
+        set(v) = sp.edit().putInt("data_limit_mb", v).apply()
+
+    var billingDay: Int
+        get() = sp.getInt("billing_day", 1)
+        set(v) = sp.edit().putInt("billing_day", v).apply()
+
+    /** e.g. "2026-11:80" — last data alert sent this cycle */
+    var dataAlertState: String
+        get() = sp.getString("data_alert_state", "") ?: ""
+        set(v) = sp.edit().putString("data_alert_state", v).apply()
+
+    /** Automatic speed tests: every N hours (0 = off), Wi-Fi only */
+    var autoSpeedHours: Int
+        get() = sp.getInt("auto_speed_h", 0)
+        set(v) = sp.edit().putInt("auto_speed_h", v).apply()
+
+    var autoSpeedWifiOnly: Boolean
+        get() = sp.getBoolean("auto_speed_wifi", true)
+        set(v) = sp.edit().putBoolean("auto_speed_wifi", v).apply()
+
+    /** Run ping + short speed tests while drive-test logging. */
+    var driveTests: Boolean
+        get() = sp.getBoolean("drive_tests", false)
+        set(v) = sp.edit().putBoolean("drive_tests", v).apply()
+
+    /** Notify on fake-tower warning signs. */
+    var secAlerts: Boolean
+        get() = sp.getBoolean("sec_alerts", true)
+        set(v) = sp.edit().putBoolean("sec_alerts", v).apply()
+
+    fun ussd(key: String, default: String): String = sp.getString("ussd_$key", default) ?: default
+    fun setUssd(key: String, v: String) = sp.edit().putString("ussd_$key", v).apply()
+
     // ---------- alerts ----------
     var alertsOn: Boolean
         get() = sp.getBoolean("alerts_on", false)

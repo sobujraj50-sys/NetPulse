@@ -142,6 +142,22 @@ class SettingsActivity : AppCompatActivity() {
                 )
             }
         }
+        val views = listOf(getString(R.string.view_simple), getString(R.string.view_detailed))
+        item(R.string.view_mode, views[if (Prefs.simpleMode) 0 else 1]) {
+            choose(R.string.view_mode, views, if (Prefs.simpleMode) 0 else 1) { Prefs.simpleMode = it == 0; build() }
+        }
+        item(R.string.status_bar, getString(if (Prefs.statusBar) R.string.on else R.string.off) + " — " + getString(R.string.status_bar_desc)) {
+            Prefs.statusBar = !Prefs.statusBar
+            if (Prefs.statusBar) {
+                if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                    androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) !=
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+                ) androidx.core.app.ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 10)
+                if (Monitor.hasLocPerm()) StatusService.start(this)
+                else { Prefs.statusBar = false; android.widget.Toast.makeText(this, R.string.hint_perm, android.widget.Toast.LENGTH_LONG).show() }
+            } else StatusService.stop(this)
+            build()
+        }
         val units = listOf(getString(R.string.units_metric), getString(R.string.units_imperial))
         item(R.string.units, units[if (Prefs.imperial) 1 else 0]) {
             choose(R.string.units, units, if (Prefs.imperial) 1 else 0) { Prefs.imperial = it == 1; build() }

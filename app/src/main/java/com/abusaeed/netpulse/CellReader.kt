@@ -91,6 +91,10 @@ class CellReader(private val ctx: Context) {
         cached = null
     }
 
+    /** TelephonyManager for a specific subscription (e.g. the mobile-data SIM). */
+    fun tmFor(subId: Int): TelephonyManager =
+        try { baseTm.createForSubscriptionId(subId) } catch (e: Exception) { baseTm }
+
     fun nextSub() {
         if (subs.size > 1) selectSub((subIndex + 1) % subs.size)
     }

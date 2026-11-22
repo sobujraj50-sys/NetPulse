@@ -75,6 +75,8 @@ object Monitor {
         logger = DriveLogger(app)
         net = NetStateWatcher(app)
         SiteFinder.init(app)
+        HistoryStore.init(app)
+        CellGuard.init(app)
     }
 
     // ---------- listeners / lifecycle ----------
@@ -103,6 +105,7 @@ object Monitor {
 
     /** Re-reads SIMs and (re)starts location + network watchers. */
     fun onPermissionsChanged() {
+        if (hasPhonePerms()) CallWatcher.start(app)
         reader.loadSubs()
         net.attach(reader.tm)
         startLocation()
@@ -139,6 +142,7 @@ object Monitor {
 
     // ---------- logging ----------
     fun startLogging(): Boolean = try {
+        DriveScripts.reset()
         logger.start()
         track.clear()
         notifyListeners()
@@ -206,14 +210,22 @@ object Monitor {
         addTrackPoint(s)
         if (hasPhonePerms()) Alerts.check(app, s)
         SiteFinder.record(s, freshLoc()) { notifyListeners() }
+        SignalWidget.maybeUpdate(app)
+        if (hasPhonePerms()) {
+            HistoryStore.onSnapshot(s, freshLoc())
+            try { CellGuard.check(s, freshLoc(), HistoryStore.inCallNow) } catch (e: Exception) { }
+        }
+        DataUsage.checkLimit(app)
         s.serving?.let { c -> dir.lookup(c) { notifyListeners() } }
         dir.updateMyAddress(freshLoc()) { notifyListeners() }
         if (logger.active) {
+            DriveScripts.tick()
             val c = s.serving
             logger.log(
                 s, freshLoc(), reader.simLabel(), dlKbps, ulKbps,
                 c?.let { dir.name(it) }, c?.let { dir.tower(it)?.address },
-                net.label(c?.tech), net.ccBandwidthsKhz.size
+                net.label(c?.tech), net.ccBandwidthsKhz.size,
+                DriveScripts.takePing(), DriveScripts.takeDl()
             )
         }
         notifyListeners()

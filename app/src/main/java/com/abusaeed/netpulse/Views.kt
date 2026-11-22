@@ -113,6 +113,31 @@ class SignalGraphView(ctx: Context, private val p: Palette) : View(ctx) {
     }
 }
 
+/** Five signal bars, filled by quality — for the simple view. */
+class SignalBarsView(ctx: Context, private val p: Palette) : View(ctx) {
+    var level: Int? = null
+    var tech: String? = null
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    override fun onDraw(c: Canvas) {
+        super.onDraw(c)
+        val filled = when (Sig.wordRes(tech, level)) {
+            R.string.q_excellent -> 5; R.string.q_good -> 4; R.string.q_fair -> 3
+            R.string.q_poor -> 2; R.string.q_bad -> 1; else -> 0
+        }
+        val col = Sig.color(tech, level)
+        val n = 5
+        val gap = width * 0.04f
+        val bw = (width - gap * (n - 1)) / n
+        for (i in 0 until n) {
+            val h = height * (0.25f + 0.75f * (i + 1) / n)
+            val x = i * (bw + gap)
+            paint.color = if (i < filled) col else p.panel2
+            c.drawRoundRect(x, height - h, x + bw, height.toFloat(), bw * 0.18f, bw * 0.18f, paint)
+        }
+    }
+}
+
 data class TrackPoint(val lat: Double, val lon: Double, val color: Int)
 
 /** Draws coloured dots for the drive track, the serving tower and the current position. */
