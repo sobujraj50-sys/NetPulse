@@ -489,4 +489,26 @@
     <string name="sec_open_nearby">Jaringan terbuka sekitar</string>
     <string name="sec_wep_nearby">Jaringan WEP sekitar</string>
     <string name="sec_wifi_more">Detail lengkap di tab Wi-Fi.</string>
+    <string name="site_tap_confirm">ketuk untuk konfirmasi</string>
+    <string name="site_search">Cari di daftar situs</string>
+    <string name="site_search_msg">Sebagian nama situs, alamat, atau area.</string>
+    <string name="site_no_results">Tidak ada situs yang cocok</string>
+    <string name="site_type_name">Ketik nama sendiri</string>
+    <string name="site_unlink">Hapus situs yang ditautkan</string>
+    <string name="site_none_near">Belum ada situs dari daftar Anda dalam 3 km dari menara ini. Bergeraklah sedikit atau cari di daftar.</string>
+    <string name="site_ref_tower">Situs terdekat dari posisi menara (OpenCelliD):</string>
+    <string name="site_ref_est">Situs terdekat dari perkiraan posisi menara:</string>
+    <string name="site_ref_you">Situs terdekat dari ANDA (posisi menara belum diketahui, periksa dengan teliti):</string>
+    <string name="site_db">Daftar situs saya (nama sel)</string>
+    <string name="site_db_empty">Belum diimpor — impor file Excel/CSV berisi nama situs dan LAT/LON</string>
+    <string name="site_db_fmt">%1$d situs • %2$s • %3$d menara ditautkan</string>
+    <string name="site_op_any">Operator apa pun</string>
+    <string name="site_import">Impor file Excel / CSV</string>
+    <string name="site_clear">Hapus daftar situs</string>
+    <string name="site_clear_confirm">Hapus daftar situs yang diimpor dan semua tautan?</string>
+    <string name="site_db_help">File perlu baris judul dengan kolom nama situs (SITENAME / SITE ID / BTS) dan LAT + LON — atau eNB / Cell ID. Kolom alamat dan wilayah dipakai bila ada. Data hanya tersimpan di ponsel ini.</string>
+    <string name="site_which_op">Situs operator mana ini?</string>
+    <string name="site_importing">Mengimpor…</string>
+    <string name="site_import_ok_fmt">Diimpor %1$d situs (%2$d dengan lokasi) dari sheet “%3$s”.\n\nDi tab CELL, ketuk nama sel untuk mengonfirmasi situs yang cocok sekali.</string>
+    <string name="site_import_fail_fmt">Impor gagal: %1$s</string>
 </resources>

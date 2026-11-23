@@ -489,4 +489,26 @@
     <string name="sec_open_nearby">आसपास खुले नेटवर्क</string>
     <string name="sec_wep_nearby">आसपास WEP नेटवर्क</string>
     <string name="sec_wifi_more">पूरी जानकारी Wi-Fi टैब में।</string>
+    <string name="site_tap_confirm">पुष्टि के लिए टैप करें</string>
+    <string name="site_search">साइट सूची में खोजें</string>
+    <string name="site_search_msg">साइट का नाम, पता या क्षेत्र का हिस्सा लिखें।</string>
+    <string name="site_no_results">कोई मिलती साइट नहीं</string>
+    <string name="site_type_name">खुद नाम लिखूं</string>
+    <string name="site_unlink">जुड़ी साइट हटाएं</string>
+    <string name="site_none_near">इस टावर के 3 किमी में आपकी सूची की कोई साइट अभी नहीं मिली। थोड़ा घूमें या सूची में खोजें।</string>
+    <string name="site_ref_tower">टावर की स्थिति (OpenCelliD) के सबसे पास की साइटें:</string>
+    <string name="site_ref_est">अनुमानित टावर स्थिति के सबसे पास की साइटें:</string>
+    <string name="site_ref_you">आपके सबसे पास की साइटें (टावर की स्थिति अभी पता नहीं, ध्यान से जांचें):</string>
+    <string name="site_db">मेरी साइट सूची (सेल नाम)</string>
+    <string name="site_db_empty">इम्पोर्ट नहीं — साइट नाम और LAT/LON वाली Excel/CSV फ़ाइल इम्पोर्ट करें</string>
+    <string name="site_db_fmt">%1$d साइटें • %2$s • %3$d टावर जुड़े</string>
+    <string name="site_op_any">कोई भी ऑपरेटर</string>
+    <string name="site_import">Excel / CSV फ़ाइल इम्पोर्ट करें</string>
+    <string name="site_clear">साइट सूची हटाएं</string>
+    <string name="site_clear_confirm">इम्पोर्ट की गई साइट सूची और सभी पुष्ट लिंक हटाएं?</string>
+    <string name="site_db_help">फ़ाइल में हेडर पंक्ति चाहिए: साइट नाम कॉलम (SITENAME / SITE ID / BTS) और LAT + LON — या eNB / Cell ID — कॉलम। पता और क्षेत्र कॉलम हों तो लिए जाएंगे। डेटा केवल इस फ़ोन पर रहता है।</string>
+    <string name="site_which_op">ये किस ऑपरेटर की साइटें हैं?</string>
+    <string name="site_importing">इम्पोर्ट हो रहा है…</string>
+    <string name="site_import_ok_fmt">शीट “%3$s” से %1$d साइटें इम्पोर्ट हुईं (%2$d में लोकेशन)।\n\nCELL टैब में सेल नाम पर टैप कर मिलती साइट की एक बार पुष्टि करें।</string>
+    <string name="site_import_fail_fmt">इम्पोर्ट विफल: %1$s</string>
 </resources>

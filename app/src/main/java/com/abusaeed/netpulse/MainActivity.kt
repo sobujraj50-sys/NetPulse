@@ -746,7 +746,16 @@ class MainActivity : AppCompatActivity() {
             towerTv.text = kv(str(R.string.tower), "--")
         } else {
             val name = dir.name(c)
-            nameTv.text = kv(str(R.string.cell_name), name ?: str(R.string.not_set_tap), if (name != null) p.accent else p.label)
+            if (name != null) {
+                nameTv.text = kv(str(R.string.cell_name), name, p.accent)
+            } else {
+                val sug = if (SiteDb.count > 0) SiteDb.nearest(c, 1) else null
+                val m = sug?.second?.firstOrNull()
+                nameTv.text = if (m != null)
+                    kv(str(R.string.cell_name), "≈ " + m.site.name + " (" + Prefs.distance(m.distM) + ") — " + str(R.string.site_tap_confirm),
+                        if ((sug?.first ?: 2) == 2) p.label else Sig.YELLOW)
+                else kv(str(R.string.cell_name), str(R.string.not_set_tap), p.label)
+            }
             val t = dir.tower(c)
             val est = if (t == null) SiteFinder.estimate(c) else null
             val tAddr = t?.address ?: est?.address?.let { "≈ $it" }
@@ -819,9 +828,49 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun editName(c: CellData) {
+        if (SiteDb.count == 0) { typeName(c); return }
+        val (kind, near) = SiteDb.nearest(c, 3)
+        val labels = ArrayList<String>()
+        val actions = ArrayList<() -> Unit>()
+        near.forEach { m ->
+            val extra = listOf(m.site.address, m.site.area).firstOrNull { it.isNotBlank() }?.let { "\n" + it.take(70) } ?: ""
+            labels.add("📍 " + m.site.name + "  •  " + Prefs.distance(m.distM) + extra)
+            actions.add { SiteDb.link(c, m.site); renderCurrent() }
+        }
+        labels.add("🔍 " + str(R.string.site_search)); actions.add { searchSite(c) }
+        labels.add("✏ " + str(R.string.site_type_name)); actions.add { typeName(c) }
+        if (SiteDb.isConfirmed(c)) { labels.add("✖ " + str(R.string.site_unlink)); actions.add { SiteDb.unlink(c); renderCurrent() } }
+        val msg = when {
+            near.isEmpty() -> str(R.string.site_none_near)
+            kind == 0 -> str(R.string.site_ref_tower)
+            kind == 1 -> str(R.string.site_ref_est)
+            else -> str(R.string.site_ref_you)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.name_title_fmt, c.tech, Monitor.cellIdText(c)) + "\n" + msg)
+            .setItems(labels.toTypedArray()) { _, i -> actions[i]() }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun searchSite(c: CellData) {
+        textDialog(str(R.string.site_search), str(R.string.site_search_msg), "", "NWA…", onSave = { q ->
+            val res = SiteDb.search(q)
+            if (res.isEmpty()) { Toast.makeText(this, R.string.site_no_results, Toast.LENGTH_SHORT).show(); return@textDialog }
+            AlertDialog.Builder(this)
+                .setTitle(str(R.string.site_search))
+                .setItems(res.map { it.name + (if (it.address.isNotBlank()) "\n" + it.address.take(70) else "") }.toTypedArray()) { _, i ->
+                    SiteDb.link(c, res[i]); renderCurrent()
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        })
+    }
+
+    private fun typeName(c: CellData) {
         textDialog(
             getString(R.string.name_title_fmt, c.tech, Monitor.cellIdText(c)), str(R.string.name_msg),
-            Monitor.dir.name(c) ?: "", str(R.string.name_hint),
+            Monitor.dir.userName(c) ?: "", str(R.string.name_hint),
             onSave = { Monitor.dir.setName(c, it); renderCurrent() },
             onRemove = { Monitor.dir.setName(c, ""); renderCurrent() }
         )

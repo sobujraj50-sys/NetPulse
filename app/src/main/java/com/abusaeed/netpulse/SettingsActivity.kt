@@ -120,6 +120,62 @@ class SettingsActivity : AppCompatActivity() {
             .show()
     }
 
+    private val ops = listOf("" to R.string.site_op_any, "47001" to 0, "47002" to 0, "47003" to 0, "47004" to 0, "47007" to 0)
+
+    private fun opName(plmn: String): String =
+        if (plmn.isEmpty()) getString(R.string.site_op_any) else Operators.fromCode(plmn)?.name ?: plmn
+
+    private val pickFile = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) chooseOperator(uri)
+    }
+
+    private fun siteDbMenu() {
+        val opts = mutableListOf(getString(R.string.site_import))
+        if (SiteDb.count > 0) opts.add(getString(R.string.site_clear))
+        AlertDialog.Builder(this)
+            .setTitle(R.string.site_db)
+            .setMessage(R.string.site_db_help)
+            .setItems(opts.toTypedArray()) { _, i ->
+                if (i == 0) pickFile.launch(arrayOf("*/*"))
+                else AlertDialog.Builder(this)
+                    .setMessage(R.string.site_clear_confirm)
+                    .setPositiveButton(R.string.remove) { _, _ -> SiteDb.clear(); build() }
+                    .setNegativeButton(R.string.cancel, null)
+                    .show()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun chooseOperator(uri: Uri) {
+        val names = ops.map { opName(it.first) }
+        choose(R.string.site_which_op, names, 0) { i -> runImport(uri, ops[i].first) }
+    }
+
+    private fun runImport(uri: Uri, plmn: String) {
+        var display = "file"
+        try {
+            contentResolver.query(uri, null, null, null, null)?.use { c ->
+                val col = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (col >= 0 && c.moveToFirst()) display = c.getString(col) ?: display
+            }
+        } catch (e: Exception) { }
+        android.widget.Toast.makeText(this, R.string.site_importing, android.widget.Toast.LENGTH_SHORT).show()
+        Thread {
+            val msg = try {
+                val r = SiteDb.importFile(uri, display, plmn)
+                getString(R.string.site_import_ok_fmt, r.count, r.withLocation, r.sheet)
+            } catch (e: Exception) {
+                getString(R.string.site_import_fail_fmt, e.message ?: e.javaClass.simpleName)
+            }
+            runOnUiThread {
+                if (isFinishing) return@runOnUiThread
+                AlertDialog.Builder(this).setTitle(R.string.site_db).setMessage(msg).setPositiveButton(android.R.string.ok, null).show()
+                build()
+            }
+        }.start()
+    }
+
     private fun build() {
         list.removeAllViews()
 
@@ -190,6 +246,9 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         section(R.string.sec_towers)
+        val siteVal = if (SiteDb.count == 0) getString(R.string.site_db_empty)
+            else getString(R.string.site_db_fmt, SiteDb.count, opName(SiteDb.plmn), SiteDb.linkCount())
+        item(R.string.site_db, siteVal) { siteDbMenu() }
         item(R.string.est_clear, getString(R.string.est_count_fmt, SiteFinder.all().size)) {
             AlertDialog.Builder(this)
                 .setMessage(R.string.est_clear_confirm)

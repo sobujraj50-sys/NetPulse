@@ -489,4 +489,26 @@
     <string name="sec_open_nearby">আশেপাশে খোলা নেটওয়ার্ক</string>
     <string name="sec_wep_nearby">আশেপাশে WEP নেটওয়ার্ক</string>
     <string name="sec_wifi_more">পুরো বিবরণ Wi-Fi ট্যাবে।</string>
+    <string name="site_tap_confirm">নিশ্চিত করতে চাপুন</string>
+    <string name="site_search">সাইট তালিকায় খুঁজুন</string>
+    <string name="site_search_msg">সাইটের নাম, ঠিকানা বা এলাকার অংশ লিখুন।</string>
+    <string name="site_no_results">মেলে এমন কোনো সাইট নেই</string>
+    <string name="site_type_name">নিজে নাম লিখব</string>
+    <string name="site_unlink">যুক্ত সাইট সরান</string>
+    <string name="site_none_near">এই টাওয়ারের ৩ কিমির মধ্যে আপনার তালিকার কোনো সাইট এখনো পাওয়া যায়নি। টাওয়ারের অবস্থান হিসাব হতে একটু ঘোরাঘুরি করুন, অথবা তালিকায় খুঁজুন।</string>
+    <string name="site_ref_tower">টাওয়ারের অবস্থানের (OpenCelliD) সবচেয়ে কাছের সাইট:</string>
+    <string name="site_ref_est">হিসাব করা টাওয়ারের অবস্থানের সবচেয়ে কাছের সাইট:</string>
+    <string name="site_ref_you">আপনার সবচেয়ে কাছের সাইট (টাওয়ারের অবস্থান এখনো জানা নেই, তাই ভালো করে মিলিয়ে নিন):</string>
+    <string name="site_db">আমার সাইট তালিকা (সেলের নাম)</string>
+    <string name="site_db_empty">import করা হয়নি — সাইটের নাম আর LAT/LON সহ Excel/CSV ফাইল import করুন</string>
+    <string name="site_db_fmt">%1$dটি সাইট • %2$s • %3$dটি টাওয়ার যুক্ত</string>
+    <string name="site_op_any">যেকোনো অপারেটর</string>
+    <string name="site_import">Excel / CSV ফাইল import করুন</string>
+    <string name="site_clear">সাইট তালিকা মুছুন</string>
+    <string name="site_clear_confirm">import করা সাইট তালিকা আর সব নিশ্চিত করা সংযোগ মুছে দেবেন?</string>
+    <string name="site_db_help">ফাইলে একটা শিরোনামের সারি লাগবে: সাইটের নামের কলাম (SITENAME / SITE ID / BTS) আর LAT + LON — অথবা eNB / Cell ID — কলাম। ঠিকানা আর টেরিটরি কলাম থাকলে সেগুলোও নেওয়া হবে। ফাইলের তথ্য শুধু এই ফোনেই থাকে।</string>
+    <string name="site_which_op">এগুলো কোন অপারেটরের সাইট?</string>
+    <string name="site_importing">import হচ্ছে…</string>
+    <string name="site_import_ok_fmt">“%3$s” শিট থেকে %1$dটি সাইট import হয়েছে (%2$dটির লোকেশন আছে)।\n\nCELL ট্যাবে সেলের নামে চাপ দিয়ে মিলে যাওয়া সাইট একবার নিশ্চিত করুন — এরপর থেকে নাম, ঠিকানা আর টাওয়ারের আসল অবস্থান দেখাবে।</string>
+    <string name="site_import_fail_fmt">import ব্যর্থ: %1$s</string>
 </resources>

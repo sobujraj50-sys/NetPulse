@@ -57,7 +57,10 @@ class CellDirectory(private val ctx: Context) {
     }
 
     // ---------- names ----------
-    fun name(c: CellData): String? = key(c)?.let { names.getString(it, null) }
+    /** Name typed by the user, else the confirmed / matched site from the imported list. */
+    fun name(c: CellData): String? = userName(c) ?: SiteDb.siteFor(c)?.name
+
+    fun userName(c: CellData): String? = key(c)?.let { names.getString(it, null) }
 
     fun setName(c: CellData, name: String) {
         val k = key(c) ?: return
@@ -67,7 +70,15 @@ class CellDirectory(private val ctx: Context) {
     fun nameCount(): Int = names.all.size
 
     // ---------- towers ----------
-    fun tower(c: CellData): Tower? = key(c)?.let { towerByKey(it) }
+    /** Tower position: the user's site list first (exact), then OpenCelliD. */
+    fun tower(c: CellData): Tower? {
+        SiteDb.siteFor(c)?.let { s ->
+            if (!s.lat.isNaN()) return Tower(s.lat, s.lon, null, listOf(s.address, s.area).filter { it.isNotBlank() }.joinToString(", ").ifBlank { null })
+        }
+        return ocidTower(c)
+    }
+
+    fun ocidTower(c: CellData): Tower? = key(c)?.let { towerByKey(it) }
 
     fun towerByKey(k: String): Tower? {
         val v = towers.getString(k, null) ?: return null

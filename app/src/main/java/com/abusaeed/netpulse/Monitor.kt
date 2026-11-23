@@ -75,6 +75,7 @@ object Monitor {
         logger = DriveLogger(app)
         net = NetStateWatcher(app)
         SiteFinder.init(app)
+        SiteDb.init(app)
         HistoryStore.init(app)
         CellGuard.init(app)
     }

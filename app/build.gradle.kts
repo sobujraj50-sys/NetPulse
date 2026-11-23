@@ -15,8 +15,8 @@ android {
         applicationId = "com.abusaeed.netpulse"
         minSdk = 26
         targetSdk = 36
-        versionCode = 14
-        versionName = "6.1"
+        versionCode = 15
+        versionName = "6.2"
     }
 
     signingConfigs {

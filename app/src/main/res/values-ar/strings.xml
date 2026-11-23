@@ -489,4 +489,26 @@
     <string name="sec_open_nearby">شبكات مفتوحة قريبة</string>
     <string name="sec_wep_nearby">شبكات WEP قريبة</string>
     <string name="sec_wifi_more">التفاصيل الكاملة في تبويب Wi-Fi.</string>
+    <string name="site_tap_confirm">اضغط للتأكيد</string>
+    <string name="site_search">ابحث في قائمة المواقع</string>
+    <string name="site_search_msg">جزء من اسم الموقع أو العنوان أو المنطقة.</string>
+    <string name="site_no_results">لا يوجد موقع مطابق</string>
+    <string name="site_type_name">اكتب اسماً بنفسي</string>
+    <string name="site_unlink">إزالة الموقع المرتبط</string>
+    <string name="site_none_near">لا يوجد موقع من قائمتك ضمن 3 كم من هذا البرج بعد. تحرّك قليلاً أو ابحث في القائمة.</string>
+    <string name="site_ref_tower">أقرب المواقع لموقع البرج (OpenCelliD):</string>
+    <string name="site_ref_est">أقرب المواقع لموقع البرج المقدّر:</string>
+    <string name="site_ref_you">أقرب المواقع إليك (موقع البرج غير معروف بعد، فتحقق جيداً):</string>
+    <string name="site_db">قائمة مواقعي (أسماء الخلايا)</string>
+    <string name="site_db_empty">غير مستوردة — استورد ملف Excel/CSV يحوي أسماء المواقع وLAT/LON</string>
+    <string name="site_db_fmt">%1$d موقعاً • %2$s • %3$d برجاً مرتبطاً</string>
+    <string name="site_op_any">أي مشغل</string>
+    <string name="site_import">استيراد ملف Excel / CSV</string>
+    <string name="site_clear">حذف قائمة المواقع</string>
+    <string name="site_clear_confirm">حذف قائمة المواقع المستوردة وكل الروابط المؤكدة؟</string>
+    <string name="site_db_help">يحتاج الملف صف عناوين فيه عمود اسم الموقع (SITENAME / SITE ID / BTS) وأعمدة LAT + LON أو eNB / Cell ID. تُستخدم أعمدة العنوان والمنطقة إن وُجدت. تبقى البيانات على هذا الهاتف فقط.</string>
+    <string name="site_which_op">لأي مشغل هذه المواقع؟</string>
+    <string name="site_importing">جارٍ الاستيراد…</string>
+    <string name="site_import_ok_fmt">تم استيراد %1$d موقعاً (%2$d بموقع جغرافي) من الورقة “%3$s”.\n\nفي تبويب CELL اضغط اسم الخلية لتأكيد الموقع المطابق مرة واحدة.</string>
+    <string name="site_import_fail_fmt">فشل الاستيراد: %1$s</string>
 </resources>

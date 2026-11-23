@@ -496,4 +496,26 @@
     <string name="sec_open_nearby">Open networks nearby</string>
     <string name="sec_wep_nearby">WEP networks nearby</string>
     <string name="sec_wifi_more">Full details in the Wi-Fi tab.</string>
+    <string name="site_tap_confirm">tap to confirm</string>
+    <string name="site_search">Search the site list</string>
+    <string name="site_search_msg">Part of the site name, address or area.</string>
+    <string name="site_no_results">No matching site</string>
+    <string name="site_type_name">Type a name myself</string>
+    <string name="site_unlink">Remove the linked site</string>
+    <string name="site_none_near">No site from your list within 3 km of this tower yet. Move around a little so the tower position can be estimated, or search the list.</string>
+    <string name="site_ref_tower">Nearest sites to the tower position (OpenCelliD):</string>
+    <string name="site_ref_est">Nearest sites to the estimated tower position:</string>
+    <string name="site_ref_you">Nearest sites to YOU (the tower position is not known yet, so check carefully):</string>
+    <string name="site_db">My site list (cell names)</string>
+    <string name="site_db_empty">Not imported — import an Excel/CSV file with site names and LAT/LON</string>
+    <string name="site_db_fmt">%1$d sites • %2$s • %3$d towers linked</string>
+    <string name="site_op_any">Any operator</string>
+    <string name="site_import">Import Excel / CSV file</string>
+    <string name="site_clear">Delete the site list</string>
+    <string name="site_clear_confirm">Delete the imported site list and all confirmed links?</string>
+    <string name="site_db_help">The file needs a header row with a site name column (SITENAME / SITE ID / BTS) and LAT + LON — or eNB / Cell ID — columns. Address and territory columns are used if present. The file stays on this phone only.</string>
+    <string name="site_which_op">Which operator\'s sites are these?</string>
+    <string name="site_importing">Importing…</string>
+    <string name="site_import_ok_fmt">Imported %1$d sites (%2$d with location) from sheet “%3$s”.\n\nOn the CELL tab, tap the cell name to confirm the matching site once — after that its name, address and exact tower position are shown.</string>
+    <string name="site_import_fail_fmt">Import failed: %1$s</string>
 </resources>
