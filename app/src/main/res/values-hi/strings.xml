@@ -503,8 +503,8 @@
     <string name="site_db_empty">इम्पोर्ट नहीं — साइट नाम और LAT/LON वाली Excel/CSV फ़ाइल इम्पोर्ट करें</string>
     <string name="site_db_fmt">%1$d साइटें • %2$s • %3$d टावर जुड़े</string>
     <string name="site_op_any">कोई भी ऑपरेटर</string>
-    <string name="site_import">Excel / CSV फ़ाइल इम्पोर्ट करें</string>
-    <string name="site_clear">साइट सूची हटाएं</string>
+    <string name="site_import">फ़ाइल चुनें</string>
+    <string name="site_clear">हटाएं</string>
     <string name="site_clear_confirm">इम्पोर्ट की गई साइट सूची और सभी पुष्ट लिंक हटाएं?</string>
     <string name="site_db_help">फ़ाइल में हेडर पंक्ति चाहिए: साइट नाम कॉलम (SITENAME / SITE ID / BTS) और LAT + LON — या eNB / Cell ID — कॉलम। पता और क्षेत्र कॉलम हों तो लिए जाएंगे। डेटा केवल इस फ़ोन पर रहता है।</string>
     <string name="site_which_op">ये किस ऑपरेटर की साइटें हैं?</string>

@@ -503,8 +503,8 @@
     <string name="site_db_empty">غير مستوردة — استورد ملف Excel/CSV يحوي أسماء المواقع وLAT/LON</string>
     <string name="site_db_fmt">%1$d موقعاً • %2$s • %3$d برجاً مرتبطاً</string>
     <string name="site_op_any">أي مشغل</string>
-    <string name="site_import">استيراد ملف Excel / CSV</string>
-    <string name="site_clear">حذف قائمة المواقع</string>
+    <string name="site_import">استيراد ملف</string>
+    <string name="site_clear">حذف</string>
     <string name="site_clear_confirm">حذف قائمة المواقع المستوردة وكل الروابط المؤكدة؟</string>
     <string name="site_db_help">يحتاج الملف صف عناوين فيه عمود اسم الموقع (SITENAME / SITE ID / BTS) وأعمدة LAT + LON أو eNB / Cell ID. تُستخدم أعمدة العنوان والمنطقة إن وُجدت. تبقى البيانات على هذا الهاتف فقط.</string>
     <string name="site_which_op">لأي مشغل هذه المواقع؟</string>

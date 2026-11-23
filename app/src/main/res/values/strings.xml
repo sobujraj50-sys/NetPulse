@@ -510,8 +510,8 @@
     <string name="site_db_empty">Not imported — import an Excel/CSV file with site names and LAT/LON</string>
     <string name="site_db_fmt">%1$d sites • %2$s • %3$d towers linked</string>
     <string name="site_op_any">Any operator</string>
-    <string name="site_import">Import Excel / CSV file</string>
-    <string name="site_clear">Delete the site list</string>
+    <string name="site_import">Import file</string>
+    <string name="site_clear">Delete list</string>
     <string name="site_clear_confirm">Delete the imported site list and all confirmed links?</string>
     <string name="site_db_help">The file needs a header row with a site name column (SITENAME / SITE ID / BTS) and LAT + LON — or eNB / Cell ID — columns. Address and territory columns are used if present. The file stays on this phone only.</string>
     <string name="site_which_op">Which operator\'s sites are these?</string>

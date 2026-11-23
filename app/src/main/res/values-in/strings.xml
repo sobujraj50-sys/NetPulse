@@ -503,8 +503,8 @@
     <string name="site_db_empty">Belum diimpor — impor file Excel/CSV berisi nama situs dan LAT/LON</string>
     <string name="site_db_fmt">%1$d situs • %2$s • %3$d menara ditautkan</string>
     <string name="site_op_any">Operator apa pun</string>
-    <string name="site_import">Impor file Excel / CSV</string>
-    <string name="site_clear">Hapus daftar situs</string>
+    <string name="site_import">Impor file</string>
+    <string name="site_clear">Hapus</string>
     <string name="site_clear_confirm">Hapus daftar situs yang diimpor dan semua tautan?</string>
     <string name="site_db_help">File perlu baris judul dengan kolom nama situs (SITENAME / SITE ID / BTS) dan LAT + LON — atau eNB / Cell ID. Kolom alamat dan wilayah dipakai bila ada. Data hanya tersimpan di ponsel ini.</string>
     <string name="site_which_op">Situs operator mana ini?</string>

@@ -503,8 +503,8 @@
     <string name="site_db_empty">import করা হয়নি — সাইটের নাম আর LAT/LON সহ Excel/CSV ফাইল import করুন</string>
     <string name="site_db_fmt">%1$dটি সাইট • %2$s • %3$dটি টাওয়ার যুক্ত</string>
     <string name="site_op_any">যেকোনো অপারেটর</string>
-    <string name="site_import">Excel / CSV ফাইল import করুন</string>
-    <string name="site_clear">সাইট তালিকা মুছুন</string>
+    <string name="site_import">ফাইল দিন</string>
+    <string name="site_clear">মুছুন</string>
     <string name="site_clear_confirm">import করা সাইট তালিকা আর সব নিশ্চিত করা সংযোগ মুছে দেবেন?</string>
     <string name="site_db_help">ফাইলে একটা শিরোনামের সারি লাগবে: সাইটের নামের কলাম (SITENAME / SITE ID / BTS) আর LAT + LON — অথবা eNB / Cell ID — কলাম। ঠিকানা আর টেরিটরি কলাম থাকলে সেগুলোও নেওয়া হবে। ফাইলের তথ্য শুধু এই ফোনেই থাকে।</string>
     <string name="site_which_op">এগুলো কোন অপারেটরের সাইট?</string>

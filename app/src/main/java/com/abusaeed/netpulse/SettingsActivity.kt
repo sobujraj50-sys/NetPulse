@@ -130,21 +130,19 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun siteDbMenu() {
-        val opts = mutableListOf(getString(R.string.site_import))
-        if (SiteDb.count > 0) opts.add(getString(R.string.site_clear))
-        AlertDialog.Builder(this)
+        val b = AlertDialog.Builder(this)
             .setTitle(R.string.site_db)
             .setMessage(R.string.site_db_help)
-            .setItems(opts.toTypedArray()) { _, i ->
-                if (i == 0) pickFile.launch(arrayOf("*/*"))
-                else AlertDialog.Builder(this)
-                    .setMessage(R.string.site_clear_confirm)
-                    .setPositiveButton(R.string.remove) { _, _ -> SiteDb.clear(); build() }
-                    .setNegativeButton(R.string.cancel, null)
-                    .show()
-            }
+            .setPositiveButton(R.string.site_import) { _, _ -> pickFile.launch(arrayOf("*/*")) }
             .setNegativeButton(R.string.cancel, null)
-            .show()
+        if (SiteDb.count > 0) b.setNeutralButton(R.string.site_clear) { _, _ ->
+            AlertDialog.Builder(this)
+                .setMessage(R.string.site_clear_confirm)
+                .setPositiveButton(R.string.remove) { _, _ -> SiteDb.clear(); build() }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        }
+        b.show()
     }
 
     private fun chooseOperator(uri: Uri) {
